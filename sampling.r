@@ -246,8 +246,11 @@ gauss_params <- function(J, perm){
   D = diag(diag(L))
   diag(L) = 1
   # print(all.equal(L %*% D %*% t(L), J, tol = 1e-15))
+  L = L[invPerm(rev(perm)), invPerm(rev(perm))] # reverse back to original ordering
+  D = D[invPerm(rev(perm)), invPerm(rev(perm))] # reverse back to original ordering
+  # J = J[invPerm(rev(perm)), invPerm(rev(perm))] # reverse back to original ordering 
+  # print(all.equal(L %*% D %*% t(L), J, tol = 1e-15)) # check equal w.r.t. (1 ... p) ordering
   B = diag(nrow=length(perm)) - L
-  B = B[rev(perm), rev(perm)] # reverse back to original ordering
   return(list(B, D))
 }
 
