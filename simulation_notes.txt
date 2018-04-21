@@ -1,0 +1,23 @@
+dags1
+
+K = 3
+M = 5
+N = 15*100
+p = 20
+edge_prob = 2/p
+
+Dags2
+
+K = 1
+M = 5
+N = 100,000
+P = 20
+edge_prob = 2/p
+
+Dags3
+
+K = 2
+M = 4
+N = 10000
+p = 4
+edge_prob = .5

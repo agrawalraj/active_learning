@@ -1,0 +1,18 @@
+library(pcalg)
+
+essgraph = new('graphNEL', nodes=c('1', '2', '3', '4'), edgemode='directed')
+essgraph = graph::addEdge('1', '2', essgraph)
+essgraph = graph::addEdge('2', '1', essgraph)
+essgraph = graph::addEdge('1', '3', essgraph)
+essgraph = graph::addEdge('3', '1', essgraph)
+essgraph = graph::addEdge('1', '4', essgraph)
+essgraph = graph::addEdge('4', '1', essgraph)
+essgraph = graph::addEdge('2', '4', essgraph)
+essgraph = graph::addEdge('4', '2', essgraph)
+essgraph = graph::addEdge('2', '3', essgraph)
+essgraph = graph::addEdge('3', '2', essgraph)
+essgraph = graph::addEdge('4', '3', essgraph)
+essgraph = graph::addEdge('3', '4', essgraph)
+
+g1 = pcalg::addBgKnowledge(essgraph, c('1', '2', '2'), c('2', '3', '4'))
+g2 = pcalg::addBgKnowledge(essgraph, c('2', '2', '1'), c('4', '3', '2'))
