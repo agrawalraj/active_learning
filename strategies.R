@@ -57,60 +57,9 @@ bed.strategy.simulator = function(K, M, n_samples, sampler, gen_int_data, g_star
   return(curr_data)
 }
 
-post_given_siginv = function(siginv) {
-  u = function(g, data) {
-    return(unnorm_int_post_known(g, sig_inv, data))
-  }
-  return(u)
-}
 
 
-K = 2
-M = 4
-N = 10000
-p = 4
 
-collect_data = function(g_star) {
-  B = construct_B(g_star)
-  id = diag(p)
-  sig_inv = t(id - B) %*% (id - B)
-  g0 = rand_from_MEC(g_star)
-  unnorm_post = function(sig_inv) {
-    unnorm_post_known = function(g, data) {
-      return(unnorm_int_post_known(g, sig_inv, data))
-    }
-    return(unnorm_post_known)
-  }
-  u = unnorm_post(sig_inv)
-  collected_data = bed.strategy.simulator(K, M, N, cov_edge_sampler, gen_gaus_int_data, g_star, B, g0, u)
-  return(list('g_star'=g_star, 'B'=B, 'data'=collected_data))
-}
-
-true_nrow = function(mat) {
-  n = nrow(mat)
-  if (!(is.null(n))) {
-    return(n)
-  } else {
-    return(1)
-  }
-}
-
-n_dags = 10
-folder = 'dags3'
-dir.create(folder, showWarnings=FALSE)
-i = 1
-while (i < n_dags) {
-  print(qq('dag #@{i}'))
-  print('=============================')
-  g_star = bnlearn::random.graph(as.character(1:p), num=1, method='ordered', prob=.5)
-  r = reversible.arcs(g_star)
-  n_rev = true_nrow(r)
-  if (n_rev != 0) {
-    vars = collect_data(g_star)
-    save(list='vars', file=qq('@{folder}/dag_@{i}.RData'))
-    i = i + 1
-  }
-}
 
 
 

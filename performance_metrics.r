@@ -35,6 +35,8 @@ class_acc = function(g_star, g_seed, data, P=unnorm_int_post_known, burn_in=200,
     avg_adj_mat = avg_adj_mat + weights[i] * adj_mats[[i]]
   }
   preds = c(avg_adj_mat[non_comp_edges])
+  print(non_comp_edges)
+  print(preds)
   return(mean(preds > .5))
 }
 

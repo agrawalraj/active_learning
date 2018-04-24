@@ -1,4 +1,4 @@
-
+library(Matrix)
 library(bnlearn)
 library(sets)
 library(mvtnorm)
@@ -118,10 +118,10 @@ unnorm_int_post = function(g, data){
 # sig_inv - true inverse covariance matrix 
 # data - interventional data in the form of a list returned by 'gen_gaus_int_data'
 # returns - the (unormalzied) posterior probability of g i.e. P(G | data, sig_inv)
-unnorm_int_post_known = function(g, sig_inv, data){
-  sig_inv = unname(sig_inv)
+unnorm_int_post_known = function(g, siginv, data){
+  siginv = unname(siginv)
   perm = node.ordering(g)
-  g_params = gauss_params(sig_inv, as.numeric(perm))
+  g_params = gauss_params(siginv, as.numeric(perm))
   B_g = g_params[[1]] # edge weights
   p = length(perm)
   Omega = solve(g_params[[2]]) # error variances
@@ -182,7 +182,11 @@ covered_edges = function(g){
         covered_edges = c(covered_edges, x1, x2)
       }
     }
-    return(matrix(covered_edges, ncol = 2, byrow = TRUE))
+    if (!is.null(covered_edges)) {
+      return(matrix(covered_edges, ncol = 2, byrow = TRUE))
+    } else {
+      return(matrix(nrow=0, ncol=2))
+    }
   } else {
     return(matrix(nrow=0, ncol=2))
   }
@@ -226,10 +230,9 @@ cov_edge_sampler = function(g0, P, data, burn_in=100, thin_rate=20, niters=1000)
 
 rand_from_MEC = function(g_star, n_samples=1, burn_in=100, thin_rate=20) {
   no_data = list()
-  no_data = no_data[1:length(bnlearn::nodes(g_star))]
+  no_data = no_data[1:bnlearn::nnodes(g_star)]
   niters = burn_in + thin_rate * n_samples
   dags = cov_edge_sampler(g_star, MEC_unif_dist, no_data, niters=niters)
-  print(length(dags))
   if (n_samples==1) {
     return(dags[[1]])
   } else {

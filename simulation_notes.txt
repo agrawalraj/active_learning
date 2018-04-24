@@ -1,23 +1,71 @@
-dags1
+Only DAGs with non-empty MEC are considered
 
+/dags1
 K = 3
 M = 5
 N = 15*100
 p = 20
 edge_prob = 2/p
 
-Dags2
-
+/dags2
 K = 1
 M = 5
 N = 100,000
 P = 20
 edge_prob = 2/p
 
-Dags3
-
+/dags3
 K = 2
 M = 4
 N = 10000
 p = 4
 edge_prob = .5
+
+/dags4
+K = 3
+M = 5
+N = 15*10
+p = 20
+edge_prob = 2/p
+
+/dags5
+K = 3
+M = 5
+N = 15*100
+p = 20
+edge_prob = 2/p
+
+/dags6
+K = 3
+M = 5
+N = 15*1000
+p = 20
+edge_prob = 2/p
+
+/dags7
+K = 3
+M = 5
+N = 15*4
+p = 4
+edge_prob = 2/p
+
+/dags8
+K = 3
+M = 5
+N = 15*10
+p = 4
+edge_prob = 2/p
+
+/dags9
+K = 3
+M = 5
+N = 15*100
+p = 4
+edge_prob = 2/p
+
+/dags10
+K = 3
+M = 5
+N = 15*4
+P = 20
+edge_prob = 5/p
