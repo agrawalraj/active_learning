@@ -38,7 +38,7 @@ bed.strategy.simulator = function(K, M, n_samples, sampler, gen_int_data, g_star
   
   essgraph = bnlearn::cpdag(g_star)
   curr_data = list()
-  curr_data = curr_data[1:length(bnlearn::nodes(essgraph))]
+  curr_data = curr_data[1:bnlearn::nnodes(essgraph)]
 
   for (m in 1:M) {
     print(qq('batch #@{m}'))
@@ -57,7 +57,18 @@ bed.strategy.simulator = function(K, M, n_samples, sampler, gen_int_data, g_star
   return(curr_data)
 }
 
-
+random.strategy.simulator = function(K, M, n_samples, g_star, edge_weights, gen_int_data) {
+  curr_data = list()
+  curr_data = curr_data[1:bnlearn::nnodes(g_star)]
+  
+  for (m in 1:M) {
+    print(qq('batch #@{m}'))
+    intervention.set = sample.int(bnlearn::nnodes(g_star), K)
+    new_data = gen_int_data(g_star, edge_weights, as.numeric(intervention.set), rep(n_samples/(M*K), K))
+    curr_data = update_data(new_data, curr_data)
+  }
+  return(curr_data)
+}
 
 
 

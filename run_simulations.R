@@ -55,22 +55,29 @@ true_nrow = function(mat) {
 # u = post_given_siginv(siginv)
 # c = class_acc(g, g0, res$data, u)
 
-foldernum = 9
+foldernum = 11
 
-for (N in c(4, 10, 100)) {
+for (N in c(100)) {
   foldernum = foldernum + 1
   folder = qq('dags@{foldernum}')
   dir.create(folder, showWarnings=FALSE)
   i = 1
   while (i < n_dags) {
-    print(qq('dag #@{i}'))
-    print('=============================')
-    g_star = bnlearn::random.graph(as.character(1:p), num=1, method='ordered', prob=5/p)
-    r = covered_edges(g_star)
-    n_rev = true_nrow(r)
-    if (n_rev != 0) {
-      vars = collect_data(g_star, N)
-      save(list='vars', file=qq('@{folder}/dag_@{i}.RData'))
+    filename = qq('@{folder}/dag_@{i}.RData')
+    if (!file.exists(filename)) {
+      print(qq('dag #@{i}'))
+      print('=============================')
+      
+      
+      g_star = bnlearn::random.graph(as.character(1:p), num=1, method='ordered', prob=5/p)
+      r = covered_edges(g_star)
+      n_rev = true_nrow(r)
+      if (n_rev != 0) {
+        vars = collect_data(g_star, N)
+        save(list='vars', file=filename)
+        i = i + 1
+      }
+    } else {
       i = i + 1
     }
   }
