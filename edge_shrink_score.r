@@ -13,8 +13,7 @@ edge_shrinkage_score = function(essgraph, intervened_nodes, samp_dags1, samp_dag
   # Get set of resulting directed edges after intervening on 'intervened_nodes' for each graph in samp_dags1
   num_mc_samps = length(samp_dags1)
   undir_edges = undirected.arcs(essgraph)
-  int_learned_arcs = lapply(samp_dags1, function(g) directed.arcs(score.intervention.dag(essgraph, g, intervened_nodes)$updated))
-  
+  int_learned_arcs = lapply(samp_dags1, function(g) directed.arcs(score.intervention.dag(essgraph, g, as.character(intervened_nodes))$updated))
   # Cache computation of edge probabilities for later
   adj_mats = lapply(samp_dags2, function(g) amat(g))
   weights = 1 / length(samp_dags2) * rep(1, length(samp_dags2))
@@ -45,7 +44,7 @@ edge_shrink.interventions.batch <- function(essgraph, samp_dags1, samp_dags2, K)
       if (intervention %in% intervention.set) {
         intervention.scores = c(intervention.scores, 0)
       } else {
-        intervention.score = edge_shrinkage_score(essgraph, samp_dags1,samp_dags2, c(intervention.set, intervention))
+        intervention.score = edge_shrinkage_score(essgraph, c(intervention.set, intervention), samp_dags1,samp_dags2)
         intervention.scores = c(intervention.scores, intervention.score)
       }
     }
