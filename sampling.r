@@ -244,6 +244,7 @@ rand_from_MEC = function(g_star, n_samples=1, burn_in=100, thin_rate=20) {
 # J is inverse covariance matrix
 # perm is permutation 
 gauss_params <- function(J, perm){
+  perm = as.numeric(perm)
   J = J[rev(perm), rev(perm)] # need to reverse ordering so lower triang since B upper triangular 
   L = ldl(J) # for some reason function puts L in lower part, and D on diagonal
   D = diag(diag(L))
@@ -254,6 +255,7 @@ gauss_params <- function(J, perm){
   # J = J[invPerm(rev(perm)), invPerm(rev(perm))] # reverse back to original ordering 
   # print(all.equal(L %*% D %*% t(L), J, tol = 1e-15)) # check equal w.r.t. (1 ... p) ordering
   B = diag(nrow=length(perm)) - L
+  # print(all.equal(B, B_true, tol = 1e-15))
   return(list(B, D))
 }
 

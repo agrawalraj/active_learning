@@ -25,7 +25,12 @@ plot_roc_curve = function(g_star, g_seed, data, P=unnorm_int_post_known, burn_in
 }
 
 class_acc = function(g_star, g_seed, data, P=unnorm_int_post_known, burn_in=200, thin_rate=20, niters=1000){
-  non_comp_edges = apply(as.matrix(reversible.arcs(g_star)), 2, as.numeric)
+  if (class(reversible.arcs(g_star)) == "character"){ # only one single compelled edge
+    non_comp_edges = as.numeric(reversible.arcs(g_star))
+    non_comp_edges = matrix(non_comp_edges, ncol=2)
+  } else {
+    non_comp_edges = apply(as.matrix(reversible.arcs(g_star)), 2, as.numeric)
+  }
   samp_dags = cov_edge_sampler(g_seed, P, data, burn_in=burn_in, thin_rate=thin_rate, niters=niters)
   adj_mats = lapply(samp_dags, function(g) amat(g))
   weights = 1/ length(samp_dags) * rep(1, length(samp_dags))
@@ -35,9 +40,26 @@ class_acc = function(g_star, g_seed, data, P=unnorm_int_post_known, burn_in=200,
     avg_adj_mat = avg_adj_mat + weights[i] * adj_mats[[i]]
   }
   preds = c(avg_adj_mat[non_comp_edges])
-  print(non_comp_edges)
-  print(preds)
   return(mean(preds > .5))
+}
+
+# REMOVE THIS FUNCTION 
+class_preds = function(g_star, g_seed, data, P=unnorm_int_post_known, burn_in=200, thin_rate=20, niters=1000){
+  if (class(reversible.arcs(g_star)) == "character"){ # only one single compelled edge
+    non_comp_edges = as.numeric(reversible.arcs(g_star))
+    non_comp_edges = matrix(non_comp_edges, ncol=2)
+  } else {
+    non_comp_edges = apply(as.matrix(reversible.arcs(g_star)), 2, as.numeric)
+  }
+  samp_dags = cov_edge_sampler(g_seed, P, data, burn_in=burn_in, thin_rate=thin_rate, niters=niters)
+  adj_mats = lapply(samp_dags, function(g) amat(g))
+  weights = 1/ length(samp_dags) * rep(1, length(samp_dags))
+  p = nnodes(g_star)
+  avg_adj_mat = matrix(0, p, p)
+  for (i in 1:length(samp_dags)) {
+    avg_adj_mat = avg_adj_mat + weights[i] * adj_mats[[i]]
+  }
+  return(avg_adj_mat)
 }
 
 avg_adj_mat = function(dags) {
