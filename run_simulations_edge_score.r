@@ -110,7 +110,6 @@ for(i in 1:61){
 }
 
 
-
 preds = class_preds(vars$g_star, vars$g_star, vars$dat, unnorm_post(calc_siginv(vars$B, p)))
 "2"  "10" "1" 
 [1] "batch #3"
