@@ -2,7 +2,7 @@ library(GetoptLong)
 source('sampling.r')
 source('performance_metrics.R')
 
-simulations_folder = 'random_strategy/dags3'
+simulations_folder = 'random_strategy/dags4'
 n_dags = 99
 accuracies = c()
 for (i in 1:n_dags) {
