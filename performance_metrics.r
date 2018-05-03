@@ -73,6 +73,6 @@ avg_adj_mat = function(dags) {
   return(avg_adj_mat[non_comp_edges])
 }
 
-
-
-
+logloss = function(probs){
+  return(-sum(log(probs) * probs))
+}
