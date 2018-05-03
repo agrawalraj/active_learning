@@ -34,9 +34,9 @@ construct_B = function(g){
   return(B)
 }
 
-gen_gaus_data = function(g_star, params, n){
+gen_gaus_data = function(g_star, params, n, sig=1){
   p = nnodes(g_star)
-  Omega = diag(rep(1, p))
+  Omega = sig * diag(rep(1, p))
   B = params
   id = diag(rep(1, p))
   Sigma = solve(t(id - B)) %*% Omega %*% solve(id - B)
@@ -49,7 +49,7 @@ gen_gaus_data = function(g_star, params, n){
 # samp_set - vector of samples for each interventions in int_set
 # returns: list where the ith element corresponds to data collected for an 
 # intervention at i and number of samples = samp_set[i]
-gen_gaus_int_data = function(g_star, params, int_set, samp_set){
+gen_gaus_int_data = function(g_star, params, int_set, samp_set, sig=1){
   new_params = params
   all_int_data = list()
   p = nnodes(g_star)
@@ -58,7 +58,7 @@ gen_gaus_int_data = function(g_star, params, int_set, samp_set){
     int_node = int_set[i]
     new_params[int_node, ] = 0 # all child edges of intervened node set to 0
     new_params[, int_node] = 0 # all parent edges of intervened node set to 0
-    int_i_data = gen_gaus_data(g_star, new_params, samp_set[i])
+    int_i_data = gen_gaus_data(g_star, new_params, samp_set[i], sig)
     int_i_data[, int_node] = 0 
     all_int_data[[int_node]] = int_i_data
     colnames(all_int_data[[int_node]]) = as.character(1:p)

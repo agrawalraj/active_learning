@@ -82,3 +82,36 @@ for (N in c(100)) {
     }
   }
 }
+
+
+
+unnorm_post = function(siginv) {
+  unnorm_post_known = function(g, data) {
+    return(unnorm_int_post_known(g, siginv, data))
+  }
+  return(unnorm_post_known)
+}
+
+calc_siginv = function(B, p){
+  id = diag(p)
+  return(solve(solve(t(id - B)) %*% solve(id - B)))
+}
+
+results = c()
+for(i in 1:61){
+  load(paste(paste('./dags21/dag_', i, sep=''), '.RData', sep=''))
+  B = vars$B
+  id = diag(p)
+  siginv = solve(solve(t(id - B)) %*% solve(id - B))
+  P = unnorm_post(siginv)
+  acc = class_acc(vars$g_star, vars$g_star, vars$data, P)
+  results = c(results, acc)
+  print(acc)
+}
+
+
+preds = class_preds(vars$g_star, vars$g_star, vars$dat, unnorm_post(calc_siginv(vars$B, p)))
+"2"  "10" "1" 
+[1] "batch #3"
+[1] "interventions"
+[1] "10" "2"  "1" 

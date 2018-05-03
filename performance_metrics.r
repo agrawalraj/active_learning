@@ -93,6 +93,6 @@ avg_likelihood_ratio = function(g_star, g_seed, data, unnorm_post, burn_in=200, 
   return(num - 1/length(samp_dags) * den)
 }
 
-
-
-
+logloss = function(probs){
+  return(-sum(log(probs) * probs))
+}
