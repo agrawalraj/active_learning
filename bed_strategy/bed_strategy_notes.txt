@@ -7,16 +7,23 @@ N = 15*4
 P = 20
 edge_prob = 5/p
 
-/dags10
+/dags11
 K = 3
 M = 5
 N = 15*10
 P = 20
 edge_prob = 5/p
 
-/dags10
+/dags12
 K = 3
 M = 5
 N = 15*100
 P = 20
 edge_prob = 5/p
+
+/dags15
+K = 5
+M = 5
+N = 5*5*5
+P = 20
+edge_prob = 1

@@ -5,7 +5,7 @@ library(doParallel)
 library(GetoptLong)
 
 n_dags = 100
-K = 3
+K = 5
 M = 5
 p = 20
 
@@ -37,7 +37,7 @@ true_nrow = function(mat) {
 randomDAG = function() {
   nrev = 0
   while (nrev == 0) {
-    g_star = bnlearn::random.graph(as.character(1:p), num=1, method='ordered', prob=5/p)
+    g_star = bnlearn::random.graph(as.character(1:p), num=1, method='ordered', prob=1)
     r = covered_edges(g_star)
     nrev = true_nrow(r)
   }
@@ -58,13 +58,13 @@ simulateDAG = function(i) {
 
 basefolder = 'bed_strategy'
 registerDoParallel(cores=3)
-foldernum = 12
-sample_sizes = c(1, 2)
+foldernum = 14
+sample_sizes = c(5)
 for (N in sample_sizes) {
   foldernum = foldernum + 1
   folder = qq('@{basefolder}/dags@{foldernum}')
   dir.create(folder, showWarnings = FALSE)
   # parLapply(cluster, 1:n_dags, simulateDAG, folder=folder, N=N)
-  foreach(i=1:n_dags, folder=rep(folder, n_dags), N=rep(N, n_dags)) %dopar% simulateDAG(i)
+  foreach(i=1:n_dags, folder=rep(folder, n_dags), N=rep(N, n_dags)) %do% simulateDAG(i)
 }
 

@@ -73,6 +73,26 @@ avg_adj_mat = function(dags) {
   return(avg_adj_mat[non_comp_edges])
 }
 
+approximate_prob = function(g_star, g_seed, data, unnorm_post, burn_in=200, thin_rate=20, niters=1000) {
+  num = unnorm_post(g_star, data)
+  samp_dags = cov_edge_sampler(g_seed, unnorm_post, data, burn_in=burn_in, thin_rate=thin_rate, niters=niters)
+  den = 0
+  for (d in samp_dags) {
+    den = den + unnorm_post(d, data)
+  }
+  return(num/den)
+}
+
+avg_likelihood_ratio = function(g_star, g_seed, data, unnorm_post, burn_in=200, thin_rate=20, niters=1000) {
+  num = log(unnorm_post(g_star))
+  samp_dags = cov_edge_sampler(g_seed, unnorm_post, data, burn_in=burn_in, thin_rate=thin_rate, niters=niters)
+  den = 0
+  for (d in samp_dags) {
+    den = den + log(unnorm_post(d))
+  }
+  return(num - 1/length(samp_dags) * den)
+}
+
 
 
 
