@@ -27,3 +27,31 @@ M = 5
 N = 5*5*5
 P = 20
 edge_prob = 1
+
+/dags16
+K = 5
+M = 5
+N = 5*5*5
+P = 5
+edge_prob = 1
+
+/dags16
+K = 5
+M = 5
+N = 5*5*10
+P = 5
+edge_prob = 1
+
+/dags17
+K = 5
+M = 5
+N = 5*5*20
+P = 5
+edge_prob = 1
+
+/dags17
+K = 5
+M = 5
+N = 5*5*50
+P = 5
+edge_prob = 1

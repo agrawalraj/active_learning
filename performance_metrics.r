@@ -1,5 +1,6 @@
-
+library(combinat)
 library(pROC)
+library(matrixStats)
 library(bnlearn)
 source('sampling.r')
 
@@ -73,17 +74,31 @@ avg_adj_mat = function(dags) {
   return(avg_adj_mat[non_comp_edges])
 }
 
-approximate_prob = function(g_star, g_seed, data, unnorm_post, burn_in=200, thin_rate=20, niters=1000) {
+approximate_prob = function(g_star, g_seed, data, unnorm_post, burn_in=200, thin_rate=10, niters=1000) {
   num = unnorm_post(g_star, data)
   samp_dags = cov_edge_sampler(g_seed, unnorm_post, data, burn_in=burn_in, thin_rate=thin_rate, niters=niters)
   den = 0
   for (d in samp_dags) {
+    print(unnorm_post(d, data))
     den = den + unnorm_post(d, data)
   }
   return(num/den)
 }
 
-avg_likelihood_ratio = function(g_star, g_seed, data, unnorm_post, burn_in=200, thin_rate=20, niters=1000) {
+approximate_prob_complete = function(g_star, data, unnorm_post) {
+  num = unnorm_post(g_star, data)
+  print(num)
+  dens = c()
+  perms = permn(nodes(g_star))
+  for (perm in perms) {
+    g = bnlearn::random.graph(perm, prob=1)
+    dens = c(dens, unnorm_post(g, data))
+  }
+  print(logSumExp(dens))
+  return(exp(num - logSumExp(dens)))
+}
+
+avg_likelihood_ratio = function(g_star, g_seed, data, unnorm_post, burn_in=200, thin_rate=10, niters=1000) {
   num = log(unnorm_post(g_star))
   samp_dags = cov_edge_sampler(g_seed, unnorm_post, data, burn_in=burn_in, thin_rate=thin_rate, niters=niters)
   den = 0
@@ -93,6 +108,6 @@ avg_likelihood_ratio = function(g_star, g_seed, data, unnorm_post, burn_in=200, 
   return(num - 1/length(samp_dags) * den)
 }
 
-logloss = function(probs){
+logloss = function(probs) {
   return(-sum(log(probs) * probs))
 }

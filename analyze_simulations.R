@@ -1,6 +1,6 @@
 library(GetoptLong)
 source('sampling.r')
-source('performance_metrics.R')
+source('performance_metrics.r')
 
 
 analyze_edge_accuracies = function(folder, ndags) {
@@ -30,14 +30,13 @@ analyze_approx_probs = function(folder, ndags) {
     p = nrow(B)
     siginv = (diag(p) - B) %*% t(diag(p) - B)
     data = vars$data
-    g_seed = rand_from_MEC(g_star)
-    approx_prob = approximate_prob(g_star, g_seed, data, post_given_siginv(siginv))
+    approx_prob = approximate_prob_complete(g_star, data, post_given_siginv(siginv))
     print(approx_prob)
     approx_probs = c(approx_probs, approx_prob)
   }
   save(list='approx_probs', file=qq('@{folder}/approx_probs.RData'))
 }
 
-folder = 'bed_strategy/dags15'
-ndags = 15
+folder = 'bed_strategy/dags16'
+ndags = 100
 analyze_approx_probs(folder, ndags)

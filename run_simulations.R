@@ -7,7 +7,7 @@ library(GetoptLong)
 n_dags = 100
 K = 5
 M = 5
-p = 20
+p = 5
 
 
 collect_data = function(g_star, N) {
@@ -58,8 +58,8 @@ simulateDAG = function(i) {
 
 basefolder = 'bed_strategy'
 registerDoParallel(cores=3)
-foldernum = 14
-sample_sizes = c(5)
+foldernum = 16
+sample_sizes = c(10, 20, 50)
 for (N in sample_sizes) {
   foldernum = foldernum + 1
   folder = qq('@{basefolder}/dags@{foldernum}')
