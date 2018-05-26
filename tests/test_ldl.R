@@ -2,7 +2,7 @@ library(testthat)
 library(bnlearn)
 source('sampling.r')
 
-test_that("Test gauss_params complete graph", {
+test_that("Adjacency matrix recovered correctly for complete graph", {
   p = 5
   gnodes = as.character(1:p)
   g = bnlearn::random.graph(gnodes, 1, prob=1)
@@ -16,7 +16,7 @@ test_that("Test gauss_params complete graph", {
   expect_equal(siginv, siginv2)
 })
 
-test_that("Test gauss_params line graph", {
+test_that("Adjacency matrix recovered correctly for line graph", {
   p = 5
   gnodes = as.character(1:p)
   g = bnlearn::empty.graph(gnodes)
@@ -25,9 +25,24 @@ test_that("Test gauss_params line graph", {
   }
   B = construct_B(g)
   siginv = adj2prec(B)
-  new_source = sample(1:p, 1)
+  new_source = sample(2:(p-1), 1)
   new_perm = c(new_source, (new_source-1):1, (new_source+1):p)
   new_perm = as.character(new_perm)
+  gparams = gauss_params(siginv, new_perm)
+  B2 = gparams[[1]]
+  omega2 = gparams[[2]]
+  siginv2 = adj2prec(B2, solve(omega2))
+  expect_equal(siginv, siginv2)
+})
+
+test_that("Adjacency matrix recovered correctly for random graph", {
+  p = 5
+  gnodes = as.character(1:p)
+  g = bnlearn::random.graph(gnodes, prob=.5)
+  B = construct_B(g)
+  siginv = adj2prec(B)
+  g2 = rand_from_MEC(g)
+  new_perm = node.ordering(g2)
   gparams = gauss_params(siginv, new_perm)
   B2 = gparams[[1]]
   omega2 = gparams[[2]]
