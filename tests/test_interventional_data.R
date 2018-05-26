@@ -41,4 +41,7 @@ test_that('interventional data is correctly generated', {
   score = new('GaussL0penIntScore', data$x, data$targets, data$target.index)
   gies.fit = gies(score)
   essgraph = gies.fit$repr
+  # TODO: compare expected I-essential graph (iessgraph) to the one recovered from the data by GIES
+  # and make sure they match (presumably, if data is being generated correctly, and there are enough
+  # samples, they will exacly match)
 })

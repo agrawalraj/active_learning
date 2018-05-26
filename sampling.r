@@ -43,6 +43,7 @@ construct_B = function(g){
 #' @param B adjacency matrix
 #' @param n number of data points to generate
 #' @param sig noise variance
+#' @return (n x p) sample matrix
 gen_gaus_data = function(g_star, B, n, sig=1){
   p = nnodes(g_star)
   Omega = sig * diag(rep(1, p))
@@ -75,6 +76,9 @@ gen_gaus_int_data = function(g_star, B, int_set, samp_set, sig=1){
   return(all_int_data)
 }
 
+#' Add data to an ongoing list of interventional data (list, each element is a data matrix sampled from
+#' the corresponding intervention)
+#' 
 #' @param curr_data - list of interventional data returned by 'gen_gaus_int_data'
 #' @param prev_data - list of interventional data returned by 'gen_gaus_int_data'
 #' @return : new list with curr_data and prev_data combined
@@ -88,6 +92,8 @@ update_data = function(curr_data, prev_data){
   return(curr_data)
 }
 
+# TODO if not needed, delete
+#' Convert a matrix into a bnlearn graph
 inc2dag = function(inc_mat){
   e = empty.graph(colnames(inc_mat))
   for(i in 1:nrow(inc_mat)){
@@ -102,6 +108,7 @@ inc2dag = function(inc_mat){
   return(e)
 }
 
+# TODO if not needed, delete
 single_int_dag = function(g, i){
   amat_g = amat(g)
   amat_g = amat_g[, -i]
@@ -109,6 +116,7 @@ single_int_dag = function(g, i){
   return(inc2dag(amat_g))
 }
 
+# TODO if not needed, delete
 unnorm_int_post = function(g, data){
   log_prob = 0 
   for(i in 1:nnodes(g)){
@@ -122,10 +130,13 @@ unnorm_int_post = function(g, data){
   return(log_prob)
 }
 
+#' Calculate the unnormalized log posterior of the DAG g given the precision matrix and 
+#' interventional data
+#' 
 #' @param g - bnlearn graph 
 #' @param sig_inv - true inverse covariance matrix 
 #' @param data - interventional data in the form of a list returned by 'gen_gaus_int_data'
-#' @return - the (unormalzied) posterior probability of g i.e. P(G | data, sig_inv)
+#' @return - the (unnormalized) log posterior probability of g i.e. P(G | data, sig_inv)
 unnorm_int_post_known = function(g, siginv, data){
   siginv = unname(siginv)
   perm = node.ordering(g)
@@ -150,8 +161,11 @@ unnorm_int_post_known = function(g, siginv, data){
   return(log_prob)
 }
 
+#' Return a function from DAGs and data to the unnormalized log posterior, 
+#' with known precision matrix
+#' 
 #' @param siginv : inverse covariance matrix
-#' @return u : the function from (g, data) to the unnormalized posterior
+#' @return u : the function from (g, data) to the unnormalized log posterior
 post_given_siginv = function(siginv) {
   u = function(g, data) {
     return(unnorm_int_post_known(g, siginv, data))
@@ -168,6 +182,7 @@ true_nrow = function(mat) {
   }
 }
 
+#' Get the covered edges of a DAG
 covered_edges = function(g){
   poten_edges = reversible.arcs(g)
   n_edges = true_nrow(poten_edges)
@@ -252,7 +267,7 @@ rand_from_MEC = function(g_star, n_samples=1, burn_in=100, thin_rate=20) {
 #' @param siginv precision matrix
 #' @param perm ordering of the nodes
 #' @return B, the adjacency matrix
-#' @return D, 
+#' @return D, the inverse error variance matrix
 gauss_params <- function(siginv, perm){
   perm = as.numeric(perm)
   siginv = siginv[rev(perm), rev(perm)] # need to reverse ordering so lower triang since B upper triangular 
