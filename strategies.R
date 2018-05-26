@@ -2,11 +2,15 @@ source('scoring.R')
 source('sampling.r')
 library(GetoptLong)
 
-# possible improvement: keep track of updated essgraph for each dag
+#' Find the best interventions, in terms of expected number of edges oriented, given sampled dags
+#' from the current posterior
+#' 
+#' @param essgraph The essential graph representing the Markov equivalence class (bnlearn graph)
+#' @param dags sampled DAGs from the current posterior
+#' @param K maximum number of interventions
+#' @return set of nodes to intervene on
 
 bed.interventions.batch <- function(essgraph, dags, K) {
-  # do Monte Carlo maximization of O_p(I) over all intervention sets I
-  # with less than K nodes
   intervention.set <- c()
   for (k in 1:K) {
     intervention.scores = c()
@@ -25,17 +29,19 @@ bed.interventions.batch <- function(essgraph, dags, K) {
   return(intervention.set)
 }
 
-bed.strategy.simulator = function(K, M, n_samples, sampler, gen_int_data, g_star, edge_weights, g0, unnorm_post, sampler_niters=1000, burn_in=100, thin_rate=20) {
-  # K: number of intervened nodes per batch
-  # M: number of batches
-  # n_samples: total number of samples we have to allocate
-  # sampler: function that takes (g0, posterior, data, n_samples) and returns ([dag])
-  # gen_int_data: function that takes (g*, edge_weights, intervention_set, n_samples/intervention) and returns data
-  # g_star: true DAG as bnlearn graph
-  # edge_weights: edge weight matrix of true DAG
-  # g0: initial dag for sampler
-  # p: function that takes (DAG, data) and returns unnormalized posterior probability
-  
+#' Simulate a run of the iterated BED (budgeted experimental design) policy for choosing interventions
+#' and gathering data
+#' 
+#' @param K: number of intervened nodes per batch
+#' @param M: number of batches
+#' @param n_samples: total number of samples we have to allocate
+#' @param sampler: function :: (g0, posterior, data, n_samples) -> [dag]
+#' @param gen_int_data: function :: (g*, edge_weights, intervention_set, n_samples/intervention) -> interventional data
+#' @param g_star: true DAG as bnlearn graph
+#' @param B: edge weight matrix of true DAG
+#' @param g0: initial dag for sampler
+#' @param unnorm_post: function that takes (DAG, data) and returns unnormalized posterior probability
+bed.strategy.simulator = function(K, M, n_samples, sampler, gen_int_data, g_star, B, g0, unnorm_post, sampler_niters=1000, burn_in=100, thin_rate=20) {
   essgraph = bnlearn::cpdag(g_star)
   curr_data = list()
   curr_data = curr_data[1:bnlearn::nnodes(essgraph)]
@@ -51,20 +57,28 @@ bed.strategy.simulator = function(K, M, n_samples, sampler, gen_int_data, g_star
     intervention.set = bed.interventions.batch(essgraph, dags, K)  # find best interventions for this batch
     print('interventions')
     print(intervention.set)
-    new_data = gen_int_data(g_star, edge_weights, as.numeric(intervention.set), rep(n_samples/(M*K), K))  # sample new data from previous intervention set
+    new_data = gen_int_data(g_star, B, as.numeric(intervention.set), rep(n_samples/(M*K), K))  # sample new data from previous intervention set
     curr_data = update_data(new_data, curr_data)  # add that data to our ongoing data set
   }
   return(curr_data)
 }
 
-random.strategy.simulator = function(K, M, n_samples, g_star, edge_weights, gen_int_data) {
+#' Simulate a run of a random policy for choosing interventions and gathering data
+#' 
+#' @param K: number of intervened nodes per batch
+#' @param M: number of batches
+#' @param n_samples: total number of samples we have to allocate
+#' @param g_star: true DAG as bnlearn graph
+#' @param B: edge weight matrix of true DAG
+#' @param gen_int_data: function :: (g*, edge_weights, intervention_set, n_samples/intervention) -> interventional data
+random.strategy.simulator = function(K, M, n_samples, g_star, B, gen_int_data) {
   curr_data = list()
   curr_data = curr_data[1:bnlearn::nnodes(g_star)]
   
   for (m in 1:M) {
     print(qq('batch #@{m}'))
     intervention.set = sample.int(bnlearn::nnodes(g_star), K)
-    new_data = gen_int_data(g_star, edge_weights, as.numeric(intervention.set), rep(n_samples/(M*K), K))
+    new_data = gen_int_data(g_star, B, as.numeric(intervention.set), rep(n_samples/(M*K), K))
     curr_data = update_data(new_data, curr_data)
   }
   return(curr_data)

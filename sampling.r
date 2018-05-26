@@ -13,8 +13,10 @@ library(KFAS)
 # cov_edge_sampler - sample from the posterior via MCMC
 ############################################################ 
 
-# Generate random edge weights for DAG g from mixture .5unif(-1, .25) + .5unif(.25, 1)
-# g - bnlearn object
+#' Generate random edge weights for DAG g from mixture .5unif(-1, .25) + .5unif(.25, 1)
+#' 
+#' @param g : bnlearn graph
+#' @return B : adjacency matrix, with B_ij = weight from i to j
 construct_B = function(g){
   p = nnodes(g)
   B = matrix(0, nrow=p, ncol=p)
@@ -34,42 +36,48 @@ construct_B = function(g){
   return(B)
 }
 
-gen_gaus_data = function(g_star, params, n, sig=1){
+
+#' Generate n samples from the graph g_star with adjacency matrix B
+#' 
+#' @param g_star bnlearn graph
+#' @param B adjacency matrix
+#' @param n number of data points to generate
+#' @param sig noise variance
+gen_gaus_data = function(g_star, B, n, sig=1){
   p = nnodes(g_star)
   Omega = sig * diag(rep(1, p))
-  B = params
   id = diag(rep(1, p))
   Sigma = solve(t(id - B)) %*% Omega %*% solve(id - B)
   return(mvtnorm::rmvnorm(n, sigma = Sigma))
 }
 
-# g_star - true DAG, blearn object
-# params - edge weights of g_star, p x p matrix
-# int_set - vector of single node interventions
-# samp_set - vector of samples for each interventions in int_set
-# returns: list where the ith element corresponds to data collected for an 
-# intervention at i and number of samples = samp_set[i]
-gen_gaus_int_data = function(g_star, params, int_set, samp_set, sig=1){
-  new_params = params
+#' @param g_star - true DAG, blearn object
+#' @param params - edge weights of g_star, p x p matrix
+#' @param int_set - vector of single node interventions
+#' @param samp_set - vector of samples for each interventions in int_set
+#' @return : list where the ith element corresponds to data collected for an 
+#' intervention at i and number of samples = samp_set[i]
+gen_gaus_int_data = function(g_star, B, int_set, samp_set, sig=1){
+  B_interventional = B
   all_int_data = list()
   p = nnodes(g_star)
   all_int_data[[p]] = 0 # make sure right length, assume single node intven
   for(i in 1:length(int_set)){
     int_node = int_set[i]
-    new_params[int_node, ] = 0 # all child edges of intervened node set to 0
-    new_params[, int_node] = 0 # all parent edges of intervened node set to 0
-    int_i_data = gen_gaus_data(g_star, new_params, samp_set[i], sig)
+    B_interventional[int_node, ] = 0 # all child edges of intervened node set to 0
+    B_interventional[, int_node] = 0 # all parent edges of intervened node set to 0
+    int_i_data = gen_gaus_data(g_star, B_interventional, samp_set[i], sig)
     int_i_data[, int_node] = 0 
     all_int_data[[int_node]] = int_i_data
     colnames(all_int_data[[int_node]]) = as.character(1:p)
-    new_params = params
+    B_interventional = B
   }
   return(all_int_data)
 }
 
-# curr_data - list of interventional data returned by 'gen_gaus_int_data'
-# prev_data - list of interventional data returned by 'gen_gaus_int_data'
-# returns: new list with curr_data and prev_data combined
+#' @param curr_data - list of interventional data returned by 'gen_gaus_int_data'
+#' @param prev_data - list of interventional data returned by 'gen_gaus_int_data'
+#' @return : new list with curr_data and prev_data combined
 update_data = function(curr_data, prev_data){
   num_ints = length(prev_data)
   for (i in 1:num_ints){
@@ -114,10 +122,10 @@ unnorm_int_post = function(g, data){
   return(log_prob)
 }
 
-# g - bnlearn graph 
-# sig_inv - true inverse covariance matrix 
-# data - interventional data in the form of a list returned by 'gen_gaus_int_data'
-# returns - the (unormalzied) posterior probability of g i.e. P(G | data, sig_inv)
+#' @param g - bnlearn graph 
+#' @param sig_inv - true inverse covariance matrix 
+#' @param data - interventional data in the form of a list returned by 'gen_gaus_int_data'
+#' @return - the (unormalzied) posterior probability of g i.e. P(G | data, sig_inv)
 unnorm_int_post_known = function(g, siginv, data){
   siginv = unname(siginv)
   perm = node.ordering(g)
@@ -142,8 +150,8 @@ unnorm_int_post_known = function(g, siginv, data){
   return(log_prob)
 }
 
-# siginv - true inverse covariance matrix
-# returns - the function from (g, data) to the unnormalized posterior
+#' @param siginv : inverse covariance matrix
+#' @return u : the function from (g, data) to the unnormalized posterior
 post_given_siginv = function(siginv) {
   u = function(g, data) {
     return(unnorm_int_post_known(g, siginv, data))
@@ -190,19 +198,16 @@ covered_edges = function(g){
   } else {
     return(matrix(nrow=0, ncol=2))
   }
-  
-  
 }
 
 MEC_unif_dist =  function(g, data){
   return(1)
 }
 
-# g0 - bnlearn object - in MEC of true DAG
-# P - unormalized posterior that takes in data see 'unnorm_int_post_known'
-# data - interventional data collected in the form of ....
-# n_iters - number of MCMC iterations
-# set of DAGs sampled from P
+#' @param g0 - bnlearn object - in MEC of true DAG
+#' @param P - unormalized posterior that takes in data see 'unnorm_int_post_known'
+#' @param data - interventional data collected in the form of ....
+#' @return set of DAGs sampled from P
 cov_edge_sampler = function(g0, P, data, burn_in=100, thin_rate=20, niters=1000){
   gt = g0  
   cov_edges_t = covered_edges(g0)
@@ -238,25 +243,40 @@ rand_from_MEC = function(g_star, n_samples=1, burn_in=100, thin_rate=20) {
   } else {
     return(dags)
   }
-  
 }
 
-# J is inverse covariance matrix
-# perm is permutation 
-gauss_params <- function(J, perm){
+#' Get the adjacency matrix and noise variance matrix
+#' corresponding to a linear gaussian SEM with a given
+#' precision matrix and ordering on the nodes
+#' 
+#' @param siginv precision matrix
+#' @param perm ordering of the nodes
+#' @return B, the adjacency matrix
+#' @return D, 
+gauss_params <- function(siginv, perm){
   perm = as.numeric(perm)
-  J = J[rev(perm), rev(perm)] # need to reverse ordering so lower triang since B upper triangular 
-  L = ldl(J) # for some reason function puts L in lower part, and D on diagonal
+  siginv = siginv[rev(perm), rev(perm)] # need to reverse ordering so lower triang since B upper triangular 
+  L = ldl(siginv) # for some reason function puts L in lower part, and D on diagonal
   D = diag(diag(L))
   diag(L) = 1
-  # print(all.equal(L %*% D %*% t(L), J, tol = 1e-15))
   L = L[invPerm(rev(perm)), invPerm(rev(perm))] # reverse back to original ordering
   D = D[invPerm(rev(perm)), invPerm(rev(perm))] # reverse back to original ordering
-  # J = J[invPerm(rev(perm)), invPerm(rev(perm))] # reverse back to original ordering 
-  # print(all.equal(L %*% D %*% t(L), J, tol = 1e-15)) # check equal w.r.t. (1 ... p) ordering
   B = diag(nrow=length(perm)) - L
-  # print(all.equal(B, B_true, tol = 1e-15))
   return(list(B, D))
+}
+
+#' Get the precision matrix from the adjacency matrix
+#' 
+#' @param B The adjacency matrix
+#' @param omega The noise matrix, by default identity
+adj2prec <- function(B, omega=NULL) {
+  p = nrow(B)
+  id = diag(p)
+  if (is.null(omega)) {
+    return((id - B) %*% t(id - B)) 
+  } else {
+    return((id - B) %*% solve(omega) %*% t(id - B))
+  }
 }
 
 ########### Example ###########
