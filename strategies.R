@@ -7,9 +7,8 @@ library(GetoptLong)
 #' 
 #' @param essgraph The essential graph representing the Markov equivalence class (bnlearn graph)
 #' @param dags sampled DAGs from the current posterior
-#' @param K maximum number of interventions
+#' @param K number of intervened nodes
 #' @return set of nodes to intervene on
-
 bed.interventions.batch <- function(essgraph, dags, K) {
   intervention.set <- c()
   for (k in 1:K) {

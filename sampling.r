@@ -61,7 +61,7 @@ gen_gaus_int_data = function(g_star, B, int_set, samp_set, sig=1){
   B_interventional = B
   all_int_data = list()
   p = nnodes(g_star)
-  all_int_data[[p]] = 0 # make sure right length, assume single node intven
+  all_int_data[[p]] = NULL # make sure right length, assume single node interventions
   for(i in 1:length(int_set)){
     int_node = int_set[i]
     B_interventional[int_node, ] = 0 # all child edges of intervened node set to 0
