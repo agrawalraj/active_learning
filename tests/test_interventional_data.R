@@ -11,8 +11,8 @@ source('sampling.r')
 #' @return list with $x being all samples, $targets being the intervention targets 
 #' in order, and $target.index mapping each sample to the index in $targets of the
 #' corresponding intervention
-format_intdata = function(intdata) {
-  data = matrix(nrow=0, ncol=10)
+format_intdata = function(intdata, p) {
+  data = matrix(nrow=0, ncol=p)
   target.index = c()
   targets = list()
   j = 1
@@ -29,19 +29,19 @@ format_intdata = function(intdata) {
 }
 
 test_that('interventional data is correctly generated', {
-  p = 10
+  p = 6
   K = 3
   gnodes = as.character(1:p)
-  g = bnlearn::random.graph(gnodes, prob=1)
+  g = bnlearn::random.graph(gnodes, prob=.8)
   B = construct_B(g)
   int_set = sample(1:p, K)
-  int_data = gen_gaus_int_data(g, B, int_set, rep(1000, K))
-  data = format_intdata(int_data)
+  int_data = gen_gaus_int_data(g, B, int_set, rep(100000, K))
+  data = format_intdata(int_data, p)
   iessgraph = get_iessgraph(bnlearn::cpdag(g), g, as.character(int_set))
   score = new('GaussL0penIntScore', data$x, data$targets, data$target.index)
   gies.fit = gies(score)
-  essgraph = gies.fit$repr
-  # TODO: compare expected I-essential graph (iessgraph) to the one recovered from the data by GIES
-  # and make sure they match (presumably, if data is being generated correctly, and there are enough
-  # samples, they will exacly match)
+  gies_iessgraph_mat = as(gies.fit$essgraph, 'matrix')*1
+  true_iessgraph_mat = as(as.graphAM(iessgraph), 'matrix')
+  match_mat = gies_iessgraph_mat == true_iessgraph_mat
+  correctly_recovered = all.equal(true_iessgraph_mat, gies_iessgraph_mat)
 })
