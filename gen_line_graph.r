@@ -10,7 +10,7 @@ all_line_graphs = function(p){
   all_dags[[1]] = e
   for(i in 1:(p-1)){
     e = reverse.arc(e, as.character(i), as.character(i + 1))
-    all_dags[[i]] = e
+    all_dags[[i+1]] = e
   }
   return(all_dags)
 }
