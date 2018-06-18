@@ -133,6 +133,20 @@ def get_covered_edges(g):
     return cov_edges
 
 
+def get_essgraph(g):
+    essgraph_dir = nx.DiGraph()
+    essgraph_undir = nx.Graph()
+    # TODO
+    return essgraph_dir, essgraph_undir
+
+
+def get_iessgraph(g, intervention):
+    iessgraph_dir = nx.DiGraph()
+    iessgraph_undir = nx.Graph()
+    # TODO
+    return iessgraph_dir, iessgraph_undir
+
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
