@@ -102,10 +102,10 @@ def sample_graph_obs(cov_mat, n_samples):
 
 def sample_graph_int(g, adj_mat, interventions, n_samples):
     all_samples = [[] for _ in range(len(g.nodes))]
-    for j, intervetion in enumerate(interventions):
-        adj_mat_int = zero_rowcol(adj_mat, intervetion)
+    for j, intervention in enumerate(interventions):
+        adj_mat_int = zero_rowcol(adj_mat, intervention)
         cov_mat = adj2cov(adj_mat_int)
-        all_samples[intervetion] = sample_graph_obs(cov_mat, n_samples[j])
+        all_samples[intervention] = sample_graph_obs(cov_mat, n_samples[j])
     return all_samples
 
 
