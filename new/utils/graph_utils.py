@@ -174,22 +174,28 @@ def get_essgraph(g):
     u.add_nodes_from(d.nodes)
 
     protected_edges = get_protected_edges(d)
-    undecided_edges = set(d.edges) - protected_edges
-    while undecided_edges:
-        print('here')
-        for i, j in undecided_edges.copy():
+    current_undecided_edges = set(d.edges) - protected_edges
+
+    for k in itr.count():
+        print(k)
+        new_undecided_edges = current_undecided_edges.copy()
+        for i, j in current_undecided_edges:
             # check configuration (a)
             if set(d.predecessors(i)) - set(d.predecessors(j)) - set(d.successors(j)):
-                undecided_edges.remove((i, j))
+                new_undecided_edges.remove((i, j))
             # check configuration (c)
             elif set(d.successors(i)) & set(d.predecessors(j)):
-                undecided_edges.remove((i, j))
+                new_undecided_edges.remove((i, j))
             # check configuration (d)
             elif len(set(d.predecessors(j)) & set(u.neighbors(i))) == 2:
-                undecided_edges.remove((i, j))
-        for i, j in undecided_edges:
+                new_undecided_edges.remove((i, j))
+        for i, j in new_undecided_edges:
             u.add_edge(i, j)
-            d.remove_edge(i, j)
+            if d.has_edge(i, j):
+                d.remove_edge(i, j)
+        if current_undecided_edges == new_undecided_edges:
+            break
+        current_undecided_edges = new_undecided_edges
 
     return d, u
 
@@ -204,7 +210,7 @@ def get_iessgraph(g, intervention):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    g = random_graph(10, 1)
+    g = random_graph(10, .5)
     # adj_mat = random_adj(g)
     # omega = np.random.uniform(.5, 1, 10)
     # omega = np.diag(omega)
@@ -217,10 +223,11 @@ if __name__ == '__main__':
     # print(get_covered_edges(g))
     # int_data = sample_graph_int(g, adj_mat, [2, 4, 5, 9], [5]*4)
     # log_post = compute_log_posterior_unnormalized(g, siginv, int_data)
-    g = nx.DiGraph()
-    g.add_edges_from([(1, 2), (2, 3), (1, 3)])
 
     d, u = get_essgraph(g)
+    print(list(d.edges))
+    print(list(u.edges))
+    print(set(d.edges) | set(u.edges) == set(g.edges))
 
 
 
