@@ -155,17 +155,18 @@ def split_digraph(g):
     return essgraph_dir, essgraph_undir
 
 
-def get_protected_edges(g, interventions=None):
+def get_vstructures(g):
     protected_edges = set()
     for i, j in g.edges:
         i_neighbors = set(g.predecessors(i)) | set(g.successors(i))
         is_vstruct = len(set(g.predecessors(j)) - i_neighbors - {i}) > 0
         if is_vstruct:
             protected_edges.add((i, j))
-    if interventions is not None:
-        # TODO
-        pass
     return protected_edges
+
+
+def replace_unprotected(d, u=None):
+    pass
 
 
 def get_essgraph(g):
@@ -173,7 +174,7 @@ def get_essgraph(g):
     u = nx.Graph()
     u.add_nodes_from(d.nodes)
 
-    protected_edges = get_protected_edges(d)
+    protected_edges = get_vstructures(d)
     current_undecided_edges = set(d.edges) - protected_edges
 
     for k in itr.count():
@@ -200,7 +201,7 @@ def get_essgraph(g):
     return d, u
 
 
-def get_iessgraph(g, intervention):
+def get_iessgraph(essgraph, interventions):
     iessgraph_dir = nx.DiGraph()
     iessgraph_undir = nx.Graph()
     # TODO

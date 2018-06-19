@@ -3,3 +3,7 @@
 .Rhistory
 .Rproj.user
 *.Rproj
+/new/venv/
+*__pycache__
+/new/data/
+/new/.ipynb_checkpoints/
