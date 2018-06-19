@@ -4,6 +4,7 @@ import itertools as itr
 from scipy.stats import multivariate_normal
 from scipy.linalg import ldl
 import operator as op
+from collections import Counter
 
 
 def inv_perm(permutation):
@@ -133,11 +134,64 @@ def get_covered_edges(g):
     return cov_edges
 
 
-def get_essgraph(g):
+def split_digraph(g):
     essgraph_dir = nx.DiGraph()
     essgraph_undir = nx.Graph()
-    # TODO
+
+    edge_counts = Counter()
+    for i, j in g.edges:
+        if (j, i) in edge_counts:
+            edge_counts.update([(j, i)])
+        else:
+            edge_counts.update([(i, j)])
+
+    for i, j in edge_counts:
+        if edge_counts[(i, j)] == 2:
+            i_, j_ = sorted([i, j])
+            essgraph_undir.add_edge(i_, j_)
+        else:
+            essgraph_dir.add_edge(i, j)
+
     return essgraph_dir, essgraph_undir
+
+
+def get_protected_edges(g, interventions=None):
+    protected_edges = set()
+    for i, j in g.edges:
+        i_neighbors = set(g.predecessors(i)) | set(g.successors(i))
+        is_vstruct = len(set(g.predecessors(j)) - i_neighbors - {i}) > 0
+        if is_vstruct:
+            protected_edges.add((i, j))
+    if interventions is not None:
+        # TODO
+        pass
+    return protected_edges
+
+
+def get_essgraph(g):
+    d = g.copy()
+    u = nx.Graph()
+    u.add_nodes_from(d.nodes)
+
+    protected_edges = get_protected_edges(d)
+    undecided_edges = set(d.edges) - protected_edges
+    while undecided_edges:
+        print('here')
+        for i, j in undecided_edges.copy():
+            # check configuration (a)
+            if set(d.predecessors(i)) - set(d.predecessors(j)) - set(d.successors(j)):
+                undecided_edges.remove((i, j))
+            # check configuration (c)
+            elif set(d.successors(i)) & set(d.predecessors(j)):
+                undecided_edges.remove((i, j))
+            # check configuration (d)
+            elif len(set(d.predecessors(j)) & set(u.neighbors(i))) == 2:
+                undecided_edges.remove((i, j))
+        for i, j in undecided_edges:
+            u.add_edge(i, j)
+            d.remove_edge(i, j)
+
+    return d, u
 
 
 def get_iessgraph(g, intervention):
@@ -150,19 +204,23 @@ def get_iessgraph(g, intervention):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    g = random_graph(10, .5)
-    adj_mat = random_adj(g)
-    omega = np.random.uniform(.5, 1, 10)
-    omega = np.diag(omega)
-    siginv = adj2prec(adj_mat, omega)
-    adj_mat2, omega2 = prec2adj(siginv, range(10))
-    l, d, _ = ldl(siginv)
-    print(np.allclose(adj_mat, adj_mat2))
-    print(np.allclose(omega, omega2))
+    g = random_graph(10, 1)
+    # adj_mat = random_adj(g)
+    # omega = np.random.uniform(.5, 1, 10)
+    # omega = np.diag(omega)
+    # siginv = adj2prec(adj_mat, omega)
+    # adj_mat2, omega2 = prec2adj(siginv, range(10))
+    # l, d, _ = ldl(siginv)
+    # print(np.allclose(adj_mat, adj_mat2))
+    # print(np.allclose(omega, omega2))
+    #
+    # print(get_covered_edges(g))
+    # int_data = sample_graph_int(g, adj_mat, [2, 4, 5, 9], [5]*4)
+    # log_post = compute_log_posterior_unnormalized(g, siginv, int_data)
+    g = nx.DiGraph()
+    g.add_edges_from([(1, 2), (2, 3), (1, 3)])
 
-    print(get_covered_edges(g))
-    int_data = sample_graph_int(g, adj_mat, [2, 4, 5, 9], [5]*4)
-    log_post = compute_log_posterior_unnormalized(g, siginv, int_data)
+    d, u = get_essgraph(g)
 
 
 
