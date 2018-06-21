@@ -38,6 +38,14 @@ def show_graph(g, plt):
     plt.show()
 
 
+def graph2adj(g):
+    p = len(g.nodes)
+    adj = np.zeros([p, p])
+    for i, j in g.edges:
+        adj[i, j] = 1
+    return adj
+
+
 def random_adj(g):
     p = len(g.nodes)
     adj_mat = np.zeros([p, p])
@@ -165,40 +173,77 @@ def get_vstructures(g):
     return protected_edges
 
 
-def replace_unprotected(d, u=None):
-    pass
+def replace_unprotected(g, u=None, verbose=False):
+    PROTECTED = 'P'
+    UNDECIDED = 'U'
+    NOT_PROTECTED = 'N'
 
+    if u is None:
+        u = nx.Graph()
+        u.add_nodes_from(g.nodes)
+    else:
+        u = u.copy()
 
-def get_essgraph(g):
     d = g.copy()
-    u = nx.Graph()
-    u.add_nodes_from(d.nodes)
+    protected_edges = get_vstructures(g)
+    undecided_edges = set(d.edges) - protected_edges
+    edge_flags = {(i, j): PROTECTED for i, j in protected_edges}
+    edge_flags.update({(i, j): UNDECIDED for i, j in undecided_edges})
 
-    protected_edges = get_vstructures(d)
-    current_undecided_edges = set(d.edges) - protected_edges
+    m = 0
+    while undecided_edges:
+        m += 1
+        print('-- %s --' % m)
+        for i, j in undecided_edges:
+            flag = NOT_PROTECTED
 
-    for k in itr.count():
-        print(k)
-        new_undecided_edges = current_undecided_edges.copy()
-        for i, j in current_undecided_edges:
             # check configuration (a)
-            if set(d.predecessors(i)) - set(d.predecessors(j)) - set(d.successors(j)):
-                new_undecided_edges.remove((i, j))
+            for k in d.predecessors(i):
+                if k not in d.neighbors(j) and k not in u.neighbors(j):
+                    if edge_flags[(k, i)] == PROTECTED:
+                        flag = PROTECTED
+                        if verbose: print('edge %s-%s protected by rule (a)' % (i, j))
+                        break
+                    else:
+                        flag = UNDECIDED
+
             # check configuration (c)
-            elif set(d.successors(i)) & set(d.predecessors(j)):
-                new_undecided_edges.remove((i, j))
+            if flag != PROTECTED:
+                for k in d.predecessors(j):
+                    if d.has_edge(i, k):
+                        if edge_flags[(i, k)] == PROTECTED and edge_flags[(k, j)] == PROTECTED:
+                            flag = PROTECTED
+                            if verbose: print('edge %s-%s protected by rule (c)' % (i, j))
+                            break
+                        else:
+                            flag = UNDECIDED
+
             # check configuration (d)
-            elif len(set(d.predecessors(j)) & set(u.neighbors(i))) == 2:
-                new_undecided_edges.remove((i, j))
-        for i, j in new_undecided_edges:
-            u.add_edge(i, j)
-            if d.has_edge(i, j):
+            if flag != PROTECTED:
+                for k1, k2 in itr.combinations(d.predecessors(j), 2):
+                    if u.has_edge(k1, i) and u.has_edge(k2, i) and not k1 in d.neighbors(k2) and k2 not in u.neighbors(k2):
+                        if edge_flags[(k1, j)] == PROTECTED and edge_flags[(k2, j)] == PROTECTED:
+                            flag = PROTECTED
+                            if verbose: print('edge %s-%s protected by rule (d)' % (i, j))
+                            break
+                        else:
+                            flag = UNDECIDED
+
+            edge_flags[(i, j)] = flag
+
+        # replace unprotected edges by lines
+        for i, j in undecided_edges.copy():
+            if edge_flags[(i, j)] != UNDECIDED:
+                undecided_edges.remove((i, j))
+            if edge_flags[(i, j)] == NOT_PROTECTED:
+                u.add_edge(i, j)
                 d.remove_edge(i, j)
-        if current_undecided_edges == new_undecided_edges:
-            break
-        current_undecided_edges = new_undecided_edges
 
     return d, u
+
+
+def get_essgraph(g, verbose=False):
+    return replace_unprotected(g, verbose=verbose)
 
 
 def get_iessgraph(essgraph, interventions):
@@ -225,10 +270,36 @@ if __name__ == '__main__':
     # int_data = sample_graph_int(g, adj_mat, [2, 4, 5, 9], [5]*4)
     # log_post = compute_log_posterior_unnormalized(g, siginv, int_data)
 
-    d, u = get_essgraph(g)
+    # d, u = get_essgraph(g)
+    # print(list(d.edges))
+    # print(list(u.edges))
+    # print(set(d.edges) | set(u.edges) == set(g.edges))
+
+    # g = nx.DiGraph()
+    # g.add_nodes_from(range(3))
+    # g.add_edges_from([(3, 1), (1, 2)])
+    # print(get_vstructures(g))
+    # get_essgraph(g)
+    #
+    # g2 = nx.DiGraph()
+    # g2.add_nodes_from(range(3))
+    # g2.add_edges_from([(3, 2), (1, 2)])
+    # print(get_vstructures(g2))
+    # get_essgraph(g2)
+
+    g2 = nx.DiGraph()
+    g2.add_nodes_from(range(4))
+    g2.add_edges_from([
+        (0, 1),
+        (0, 2),
+        (0, 3),
+        (2, 1),
+        (3, 1)
+    ])
+    d, u = get_essgraph(g2)
     print(list(d.edges))
     print(list(u.edges))
-    print(set(d.edges) | set(u.edges) == set(g.edges))
+
 
 
 
