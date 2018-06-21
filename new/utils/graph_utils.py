@@ -1,3 +1,5 @@
+from __future__ import division  # in case python2 is used
+
 import numpy as np
 import networkx as nx
 import itertools as itr
@@ -30,6 +32,12 @@ def random_graph(p, edge_prob):
         if bernoulli(edge_prob):
             g.add_edge(i, j)
     return g
+
+
+def reverse_edge(g, xi, xj):
+    attrs = g[xi][xj]
+    g.remove_edge(xi, xj)
+    g.add_edge(xj, xi, attrs)
 
 
 def show_graph(g, plt):
@@ -134,12 +142,26 @@ def compute_log_posterior_unnormalized(g, siginv, int_data):
     return log_post
 
 
+def is_covered_edge(g, source, target):
+    return set(g.pred[source]) == set(g.pred[target]) - {source}
+
+
 def get_covered_edges(g):
     cov_edges = set()
     for source, target in g.edges:
-        if set(g.pred[source]) == set(g.pred[target]) - {source}:
+        if is_covered_edge(g, source, target):
             cov_edges.add((source, target))
     return cov_edges
+
+
+def update_covered_edges(g, xi, xj, prev_cov_edge_set):
+    # Only children of nodes xi and xj need to be updated
+    good_cov_edges = set([edge for edge in prev_cov_edge_set if edge[0] != xi and edge[0] != xj])
+
+    # Update edges between xi and xj
+    [good_cov_edges.add((xi, child)) for child in set(g[xi]) if is_covered_edge(g, xi, child)]
+    [good_cov_edges.add((xj, child)) for child in set(g[xj]) if is_covered_edge(g, xj, child)]
+    return good_cov_edges
 
 
 def split_digraph(g):
