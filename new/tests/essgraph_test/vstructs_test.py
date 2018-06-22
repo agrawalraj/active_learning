@@ -7,7 +7,7 @@ import itertools as itr
 
 class TestEssgraph(unittest.TestCase):
     def test_essgraph(self):
-        p = 10
+        p = 5
         edge_probs = [.5]
         n_dags = 10
         for edge_prob in edge_probs:

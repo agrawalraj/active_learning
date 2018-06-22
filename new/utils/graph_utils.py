@@ -220,11 +220,10 @@ def replace_unprotected(g, u=None, verbose=False):
     m = 0
     while undecided_edges:
         m += 1
-        print('-- %s --' % m)
         for i, j in undecided_edges:
             flag = NOT_PROTECTED
 
-            # check configuration (a)
+            # check configuration (a) -- causal chain
             for k in d.predecessors(i):
                 if not is_adjacent(k, j):
                     if edge_flags[(k, i)] == PROTECTED:
@@ -235,7 +234,7 @@ def replace_unprotected(g, u=None, verbose=False):
                         if verbose: print('edge %s-%s undecided by rule (a)' % (i, j))
                         flag = UNDECIDED
 
-            # check configuration (c)
+            # check configuration (c) -- acyclicity
             if flag != PROTECTED:
                 for k in d.predecessors(j):
                     if is_parent(i, k):
@@ -317,14 +316,28 @@ if __name__ == '__main__':
     # print(get_vstructures(g2))
     # get_essgraph(g2)
 
+    # g2 = nx.DiGraph()
+    # g2.add_nodes_from(range(4))
+    # g2.add_edges_from([
+    #     (0, 3),
+    #     (1, 3),
+    #     (2, 3),
+    #     (2, 4),
+    #     (3, 4)
+    # ])
+    # d, u = get_essgraph(g2)
+    # print(list(d.edges))
+    # print(list(u.edges))
+
     g2 = nx.DiGraph()
     g2.add_nodes_from(range(4))
     g2.add_edges_from([
         (0, 1),
-        (0, 2),
+        (1, 2),
         (0, 3),
-        (2, 1),
-        (3, 1)
+        (1, 2),
+        (1, 4),
+        (2, 3)
     ])
     d, u = get_essgraph(g2)
     print(list(d.edges))
