@@ -18,22 +18,22 @@ class TestEssgraph(unittest.TestCase):
                 np.savetxt('tests/essgraph_test/tmp-graph.txt', adj)
                 os.system('R -f tests/essgraph_test/get_essgraph.R > /dev/null')
                 r_essgraph = np.loadtxt('tests/essgraph_test/tmp-graph-r.txt')
-                r_directed_edges = []
-                r_undirected_edges = []
+                r_directed_edges = set()
+                r_undirected_edges = set()
                 for i, j in itr.combinations(range(p), 2):
                     if r_essgraph[i, j] == 1:
                         if r_essgraph[j, i] == 1:
-                            r_undirected_edges.append((i, j))
+                            r_undirected_edges.add((i, j))
                         else:
-                            r_directed_edges.append((i, j))
-                print(r_undirected_edges)
-                print(len(r_undirected_edges))
+                            r_directed_edges.add((i, j))
 
-                d, u = gu.get_essgraph(g, verbose=True)
-                directed_edges = d.edges
-                undirected_edges = u.edges
+                d, u = gu.get_essgraph(g, verbose=False)
+                directed_edges = set(d.edges)
+                undirected_edges = set(u.edges)
+                print(r_undirected_edges)
                 print(undirected_edges)
-                print(len(undirected_edges))
+                self.assertEqual(r_undirected_edges, undirected_edges)
+                # self.assertEqual(r_directed_edges, directed_edges)
 
         os.system('rm tests/essgraph_test/tmp-graph.txt')
         os.system('rm tests/essgraph_test/tmp-graph-r.txt')

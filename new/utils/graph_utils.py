@@ -187,11 +187,12 @@ def split_digraph(g):
 
 def get_vstructures(g):
     protected_edges = set()
-    for i, j in g.edges:
-        i_neighbors = set(g.predecessors(i)) | set(g.successors(i))
-        is_vstruct = len(set(g.predecessors(j)) - i_neighbors - {i}) > 0
-        if is_vstruct:
-            protected_edges.add((i, j))
+
+    for j in g.nodes:
+        for i, k in itr.combinations(g.predecessors(j), 2):
+            if not g.has_edge(i, k) and not g.has_edge(k, i):
+                protected_edges.add((i, j))
+                protected_edges.add((k, j))
     return protected_edges
 
 
@@ -212,6 +213,10 @@ def replace_unprotected(g, u=None, verbose=False):
     edge_flags = {(i, j): PROTECTED for i, j in protected_edges}
     edge_flags.update({(i, j): UNDECIDED for i, j in undecided_edges})
 
+    is_parent = lambda i, j: d.has_edge(i, j)
+    is_adjacent = lambda i, j: d.has_edge(i, j) or d.has_edge(j, i) or u.has_edge(i, j)
+    is_neighbor = lambda i, j: u.has_edge(i, j)
+
     m = 0
     while undecided_edges:
         m += 1
@@ -221,34 +226,37 @@ def replace_unprotected(g, u=None, verbose=False):
 
             # check configuration (a)
             for k in d.predecessors(i):
-                if k not in d.neighbors(j) and k not in u.neighbors(j):
+                if not is_adjacent(k, j):
                     if edge_flags[(k, i)] == PROTECTED:
                         flag = PROTECTED
                         if verbose: print('edge %s-%s protected by rule (a)' % (i, j))
                         break
                     else:
+                        if verbose: print('edge %s-%s undecided by rule (a)' % (i, j))
                         flag = UNDECIDED
 
             # check configuration (c)
             if flag != PROTECTED:
                 for k in d.predecessors(j):
-                    if d.has_edge(i, k):
+                    if is_parent(i, k):
                         if edge_flags[(i, k)] == PROTECTED and edge_flags[(k, j)] == PROTECTED:
                             flag = PROTECTED
                             if verbose: print('edge %s-%s protected by rule (c)' % (i, j))
                             break
                         else:
+                            print('edge %s-%s undecided by rule (c)' % (i, j))
                             flag = UNDECIDED
 
             # check configuration (d)
             if flag != PROTECTED:
                 for k1, k2 in itr.combinations(d.predecessors(j), 2):
-                    if u.has_edge(k1, i) and u.has_edge(k2, i) and not k1 in d.neighbors(k2) and k2 not in u.neighbors(k2):
+                    if is_neighbor(k2, i) and is_neighbor(k2, i) and not is_adjacent(k1, k2):
                         if edge_flags[(k1, j)] == PROTECTED and edge_flags[(k2, j)] == PROTECTED:
                             flag = PROTECTED
                             if verbose: print('edge %s-%s protected by rule (d)' % (i, j))
                             break
                         else:
+                            if verbose: print('edge %s-%s undecided by rule (a)' % (i, j))
                             flag = UNDECIDED
 
             edge_flags[(i, j)] = flag

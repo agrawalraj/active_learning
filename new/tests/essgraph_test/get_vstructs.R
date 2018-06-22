@@ -11,6 +11,5 @@ for (i in 1:nrow(adj)) {
     }
 }
 
-essgraph = cpdag(b, moral=FALSE)
-essgraph_adj = amat(essgraph)
-write.table(essgraph_adj, 'tests/essgraph_test/tmp-graph-r.txt', row.names=FALSE, col.names=FALSE)
+v = vstructs(b, arcs=TRUE, moral=FALSE)
+write.table(v, 'tests/essgraph_test/vstructs-r.txt', row.names=FALSE, col.names=FALSE)
