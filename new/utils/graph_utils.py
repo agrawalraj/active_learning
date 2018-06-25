@@ -196,7 +196,7 @@ def get_vstructures(g):
     return protected_edges
 
 
-def replace_unprotected(g, u=None, verbose=False):
+def replace_unprotected(g, protected_edges, u=None, verbose=False):
     PROTECTED = 'P'
     UNDECIDED = 'U'
     NOT_PROTECTED = 'N'
@@ -208,7 +208,6 @@ def replace_unprotected(g, u=None, verbose=False):
         u = u.copy()
 
     d = g.copy()
-    protected_edges = get_vstructures(g)
     undecided_edges = set(d.edges) - protected_edges
     edge_flags = {(i, j): PROTECTED for i, j in protected_edges}
     edge_flags.update({(i, j): UNDECIDED for i, j in undecided_edges})
@@ -255,7 +254,7 @@ def replace_unprotected(g, u=None, verbose=False):
                             if verbose: print('edge %s-%s protected by rule (d)' % (i, j))
                             break
                         else:
-                            if verbose: print('edge %s-%s undecided by rule (a)' % (i, j))
+                            if verbose: print('edge %s-%s undecided by rule (d)' % (i, j))
                             flag = UNDECIDED
 
             edge_flags[(i, j)] = flag
@@ -272,14 +271,16 @@ def replace_unprotected(g, u=None, verbose=False):
 
 
 def get_essgraph(g, verbose=False):
-    return replace_unprotected(g, verbose=verbose)
+    protected_edges = get_vstructures(g)
+    print(protected_edges)
+    return replace_unprotected(g, protected_edges, verbose=verbose)
 
 
-def get_iessgraph(essgraph, interventions):
-    iessgraph_dir = nx.DiGraph()
-    iessgraph_undir = nx.Graph()
-    # TODO
-    return iessgraph_dir, iessgraph_undir
+def get_iessgraph(g, interventions, verbose=False):
+    cut_edges = set.union(*(set(g.in_edges(node)) | set(g.out_edges(node)) for node in interventions))
+    protected_edges = get_vstructures(g) | cut_edges
+    print(protected_edges)
+    return replace_unprotected(g, protected_edges, verbose=verbose)
 
 
 if __name__ == '__main__':
@@ -340,6 +341,10 @@ if __name__ == '__main__':
         (2, 3)
     ])
     d, u = get_essgraph(g2)
+    print(list(d.edges))
+    print(list(u.edges))
+
+    d, u = get_iessgraph(g2, [2])
     print(list(d.edges))
     print(list(u.edges))
 
