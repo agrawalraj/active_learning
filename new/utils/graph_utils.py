@@ -35,9 +35,10 @@ def random_graph(p, edge_prob):
 
 
 def reverse_edge(g, xi, xj):
-    attrs = g[xi][xj]
+    # attrs = g[xi][xj]
     g.remove_edge(xi, xj)
-    g.add_edge(xj, xi, attrs)
+    # g.add_edge(xj, xi, attrs)
+    g.add_edge(xj, xi)
 
 
 def show_graph(g, plt):
