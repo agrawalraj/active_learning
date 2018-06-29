@@ -6,14 +6,15 @@ import numpy as np
 
 def sample_dags(g0, siginv, data, burn_in=100, thin_factor=20, iterations=1000):
     g_curr = g0.copy()
-    cov_edges_curr = get_covered_edges(g_curr)
+    cov_edges_curr = list(get_covered_edges(g_curr))
     sample_dags = []
     for t in range(iterations):
         # Randomly select a covered edge to flip
-        xi, xj = np.random.shuffle(list(cov_edges_curr))[0]
+        np.random.shuffle(cov_edges_curr)
+        xi, xj = cov_edges_curr[0]
         g_next = g_curr.copy()
         reverse_edge(g_next, xi, xj)
-        cov_edges_next = update_covered_edges(g_next, xi, xj, cov_edges_curr)
+        cov_edges_next = list(update_covered_edges(g_next, xi, xj, set(cov_edges_curr)))
 
         # Compute the acceptance probability
         p_curr_unnormalized = compute_log_posterior_unnormalized(g_curr, siginv, data)
@@ -35,4 +36,12 @@ def sample_dags(g0, siginv, data, burn_in=100, thin_factor=20, iterations=1000):
 
 def sample_dags_uniform(g0):
     return sample_dags(g0, [])
+
+if __name__ == '__main__':
+    g0 = random_graph(10, .5)
+    adj_mat = random_adj(g)
+    omega = np.random.uniform(.5, 1, 10)
+    omega = np.diag(omega)
+    siginv = adj2prec(adj_mat, omega)
+    data = sample_graph_int(g, adj_mat, [2, 4, 5, 9], [5]*4) 
 
