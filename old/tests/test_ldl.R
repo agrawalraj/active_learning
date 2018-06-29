@@ -2,6 +2,19 @@ library(testthat)
 library(bnlearn)
 source('sampling.r')
 
+test_that("same number of edges", {
+  p = 10
+  gnodes = as.character(1:p)
+  g = bnlearn::random.graph(gnodes, 1, prob=.5)
+  B = construct_B(g)
+  siginv = adj2prec(B)
+  new_perm = sample(gnodes, size=p)
+  gparams = gauss_params(siginv, new_perm)
+  B2 = gparams[[1]]
+  print(sum(B!=0))
+  print(sum(B2!=0))
+})
+
 test_that("Adjacency matrix recovered correctly for complete graph", {
   p = 5
   gnodes = as.character(1:p)

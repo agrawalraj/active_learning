@@ -330,23 +330,48 @@ if __name__ == '__main__':
     # print(list(d.edges))
     # print(list(u.edges))
 
-    g2 = nx.DiGraph()
-    g2.add_nodes_from(range(4))
-    g2.add_edges_from([
-        (0, 1),
-        (1, 2),
-        (0, 3),
-        (1, 2),
-        (1, 4),
-        (2, 3)
-    ])
-    d, u = get_essgraph(g2)
-    print(list(d.edges))
-    print(list(u.edges))
+    # g2 = nx.DiGraph()
+    # g2.add_nodes_from(range(4))
+    # g2.add_edges_from([
+    #     (0, 1),
+    #     (1, 2),
+    #     (0, 3),
+    #     (1, 2),
+    #     (1, 4),
+    #     (2, 3)
+    # ])
+    # d, u = get_essgraph(g2)
+    # print(list(d.edges))
+    # print(list(u.edges))
+    #
+    # d, u = get_iessgraph(g2, [2])
+    # print(list(d.edges))
+    # print(list(u.edges))
 
-    d, u = get_iessgraph(g2, [2])
-    print(list(d.edges))
-    print(list(u.edges))
+    def switch_perm(curr_perm, i, j):
+        a, b = curr_perm.index(i), curr_perm.index(j)
+        new_perm = curr_perm.copy()
+        new_perm[a], new_perm[b] = j, i
+        return new_perm
+
+    adj_mat = random_adj(g)
+    prec = adj2prec(adj_mat)
+    cov_edges = get_covered_edges(g)
+    i, j = list(cov_edges)[0]
+
+    # node_order = list(nx.topological_sort(g))
+    # new_order = switch_perm(node_order, i, j)
+    perm = list(range(10))
+    perm = switch_perm(perm, i, j)
+    new_prec = permute(prec, perm)
+    new_adj, new_omega = prec2adj(prec, perm)
+    print(np.allclose(adj2prec(new_adj, new_omega), prec))
+    print(adj_mat.astype(bool).astype(int))
+    print(new_adj.astype(bool).astype(int))
+    print(adj_mat.astype(bool).sum())
+    print(new_adj.astype(bool).sum())
+
+
 
 
 
