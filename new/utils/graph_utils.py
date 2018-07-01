@@ -9,6 +9,10 @@ import operator as op
 from collections import Counter
 
 
+def RAND_RANGE():
+    return np.random.uniform(.25, 1) * (-1 if bernoulli(.5) else 1)
+
+
 def inv_perm(permutation):
     return [i for i, j in sorted(enumerate(permutation), key=op.itemgetter(1))]
 
@@ -55,13 +59,11 @@ def graph2adj(g):
     return adj
 
 
-def random_adj(g):
+def random_adj(g, num_gen=RAND_RANGE):
     p = len(g.nodes)
     adj_mat = np.zeros([p, p])
     for i, j in g.edges:
-        adj_mat[i, j] = np.random.uniform(.25, 1)
-        if bernoulli(.5):
-            adj_mat[i, j] *= -1
+        adj_mat[i, j] = num_gen()
     return adj_mat
 
 
@@ -106,7 +108,10 @@ def adj2cov_int(adj_mat, intervention, omega=None):
 def prec2adj(prec, node_order):
     p = prec.shape[0]
     prec = permute(prec, node_order)
-    u, d, _ = ldl(prec, lower=False)
+    u, d, perm_ = ldl(prec, lower=False)
+    # print('prec2adj')
+    # print(u.astype(bool))
+    print(perm_)
     inv_node_order = inv_perm(node_order)
     adj_mat = np.eye(p) - permute(u, inv_node_order)
     omega = np.linalg.inv(permute(d, inv_node_order))
@@ -287,7 +292,8 @@ def get_iessgraph(g, interventions, verbose=False):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    g = random_graph(10, .5)
+    p = 10
+    g = random_graph(p, .5)
     # adj_mat = random_adj(g)
     # omega = np.random.uniform(.5, 1, 10)
     # omega = np.diag(omega)
@@ -355,22 +361,60 @@ if __name__ == '__main__':
         new_perm[a], new_perm[b] = j, i
         return new_perm
 
+
+    def int_gen():
+        return np.random.randint(1, 5)
+
+    import random
+
     adj_mat = random_adj(g)
     prec = adj2prec(adj_mat)
     cov_edges = get_covered_edges(g)
-    i, j = list(cov_edges)[0]
+    i, j = random.sample(list(cov_edges), 1)[0]
+    # adj_mat2, _ = prec2adj(prec, range(p))
+    # adj_mat2[abs(adj_mat2) < 1e-10] = 0
+    # print('=========')
+    # print('adj_mat:')
+    # print(adj_mat.astype(bool).astype(int))
+    # print('adj_mat2:')
+    # print(adj_mat2.astype(bool).astype(int))
 
-    # node_order = list(nx.topological_sort(g))
-    # new_order = switch_perm(node_order, i, j)
-    perm = list(range(10))
+    node_order = list(nx.topological_sort(g))
+    new_order = switch_perm(node_order, i, j)
+    perm = list(range(p))
     perm = switch_perm(perm, i, j)
     new_prec = permute(prec, perm)
     new_adj, new_omega = prec2adj(prec, perm)
+    new_adj[abs(new_adj) < 1e-10] = 0
+
+    print('=========')
+    print('same precision matrix:')
     print(np.allclose(adj2prec(new_adj, new_omega), prec))
+
+    print('=========')
+    print('adj_mat:')
     print(adj_mat.astype(bool).astype(int))
+    print('new_adj:')
     print(new_adj.astype(bool).astype(int))
+
+    print('num edges adj_mat:')
     print(adj_mat.astype(bool).sum())
+    print('num_edges new_adj:')
     print(new_adj.astype(bool).sum())
+    print('number of edges different:')
+    print((adj_mat.astype(bool) != new_adj.astype(bool)).sum())
+    print('adj_mat - new_adj edges')
+    print((adj_mat.astype(bool).astype(int) - new_adj.astype(bool).astype(int) == 1).sum())
+    print('new_adj - adj_mat edges')
+    print((new_adj.astype(bool).astype(int) - adj_mat.astype(bool).astype(int) == 1).sum())
+
+    # print('=========')
+    # print('covered edge:')
+    # print(i, j)
+    # print("omega' closeto omega:")
+    # print(np.isclose(np.ones(p), np.diag(new_omega)))
+    # print("adj' closeto adj:")
+    # print(np.isclose(adj_mat, new_adj))
 
 
 
