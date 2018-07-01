@@ -113,21 +113,32 @@ def prec2adj(prec, node_order):
     if not is_pos_def(prec):
         raise ValueError('precision matrix is not positive definite')
     p = prec.shape[0]
-    print(prec)
     prec = permute(prec, node_order)
-    print(prec)
     u, d, perm_ = ldl(prec, lower=False)
     u[np.isclose(u, 0)] = 0
-    print('u\n', u)
-    # print('prec2adj')
-    # print(u.astype(bool))
-    print(perm_)
     inv_node_order = inv_perm(node_order)
-    print(inv_node_order)
     adj_mat = np.eye(p) - permute(u, inv_node_order)
     omega = np.linalg.inv(permute(d, inv_node_order))
     adj_mat[np.isclose(adj_mat, 0)] = 0
     return adj_mat, omega
+
+
+def update_order(curr_order, i, j):
+    new_order = []
+    for k in curr_order:
+        if k == i:
+            new_order.append(j)
+            new_order.append(i)
+        elif k == j:
+            continue
+        else:
+            new_order.append(k)
+    return new_order
+
+
+def updated_adj(prec, curr_order, i, j):
+    new_order = update_order(curr_order, i, j)
+    return prec2adj(prec, new_order)
 
 
 def sample_graph_obs(cov_mat, n_samples):
