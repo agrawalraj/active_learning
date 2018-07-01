@@ -9,6 +9,10 @@ import operator as op
 from collections import Counter
 
 
+def is_pos_def(x):
+    return np.all(np.linalg.eigvals(x) > 0)
+
+
 def RAND_RANGE():
     return np.random.uniform(.25, 1) * (-1 if bernoulli(.5) else 1)
 
@@ -106,15 +110,23 @@ def adj2cov_int(adj_mat, intervention, omega=None):
 
 
 def prec2adj(prec, node_order):
+    if not is_pos_def(prec):
+        raise ValueError('precision matrix is not positive definite')
     p = prec.shape[0]
+    print(prec)
     prec = permute(prec, node_order)
+    print(prec)
     u, d, perm_ = ldl(prec, lower=False)
+    u[np.isclose(u, 0)] = 0
+    print('u\n', u)
     # print('prec2adj')
     # print(u.astype(bool))
     print(perm_)
     inv_node_order = inv_perm(node_order)
+    print(inv_node_order)
     adj_mat = np.eye(p) - permute(u, inv_node_order)
     omega = np.linalg.inv(permute(d, inv_node_order))
+    adj_mat[np.isclose(adj_mat, 0)] = 0
     return adj_mat, omega
 
 
@@ -292,8 +304,32 @@ def get_iessgraph(g, interventions, verbose=False):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    p = 10
-    g = random_graph(p, .5)
+    g = nx.DiGraph()
+    g.add_edges_from([(0,2), (0, 3), (0, 4), (1,2)])
+    adj = np.zeros([5, 5])
+    adj[0, 2] = RAND_RANGE()
+    adj[0, 3] = RAND_RANGE()
+    adj[0, 4] = RAND_RANGE()
+    adj[1, 2] = RAND_RANGE()
+    reverse_edge(g, 0, 3)
+    perm = list(nx.topological_sort(g))
+    print(perm)
+
+
+    # adj = permute(adj, [3, 1, 2, 0, 4])
+
+    prec = adj2prec(adj)
+    adj2, _ = prec2adj(prec, perm)
+    adj2[abs(adj2) < 1e-10] = 0
+    print('adj', adj)
+    print('adj2', adj2)
+
+    n_edges1 = adj.astype(bool).sum()
+    n_edges2 = adj2.astype(bool).sum()
+    print(n_edges1, n_edges2)
+
+    # p = 5
+    # g = random_graph(p, .5)
     # adj_mat = random_adj(g)
     # omega = np.random.uniform(.5, 1, 10)
     # omega = np.diag(omega)
@@ -355,22 +391,22 @@ if __name__ == '__main__':
     # print(list(d.edges))
     # print(list(u.edges))
 
-    def switch_perm(curr_perm, i, j):
-        a, b = curr_perm.index(i), curr_perm.index(j)
-        new_perm = curr_perm.copy()
-        new_perm[a], new_perm[b] = j, i
-        return new_perm
-
-
-    def int_gen():
-        return np.random.randint(1, 5)
-
-    import random
-
-    adj_mat = random_adj(g)
-    prec = adj2prec(adj_mat)
-    cov_edges = get_covered_edges(g)
-    i, j = random.sample(list(cov_edges), 1)[0]
+    # def switch_perm(curr_perm, i, j):
+    #     a, b = curr_perm.index(i), curr_perm.index(j)
+    #     new_perm = curr_perm.copy()
+    #     new_perm[a], new_perm[b] = j, i
+    #     return new_perm
+    #
+    #
+    # def int_gen():
+    #     return np.random.randint(1, 5)
+    #
+    # import random
+    #
+    # adj_mat = random_adj(g)
+    # prec = adj2prec(adj_mat)
+    # cov_edges = get_covered_edges(g)
+    # i, j = random.sample(list(cov_edges), 1)[0]
     # adj_mat2, _ = prec2adj(prec, range(p))
     # adj_mat2[abs(adj_mat2) < 1e-10] = 0
     # print('=========')
@@ -379,34 +415,34 @@ if __name__ == '__main__':
     # print('adj_mat2:')
     # print(adj_mat2.astype(bool).astype(int))
 
-    node_order = list(nx.topological_sort(g))
-    new_order = switch_perm(node_order, i, j)
-    perm = list(range(p))
-    perm = switch_perm(perm, i, j)
-    new_prec = permute(prec, perm)
-    new_adj, new_omega = prec2adj(prec, perm)
-    new_adj[abs(new_adj) < 1e-10] = 0
-
-    print('=========')
-    print('same precision matrix:')
-    print(np.allclose(adj2prec(new_adj, new_omega), prec))
-
-    print('=========')
-    print('adj_mat:')
-    print(adj_mat.astype(bool).astype(int))
-    print('new_adj:')
-    print(new_adj.astype(bool).astype(int))
-
-    print('num edges adj_mat:')
-    print(adj_mat.astype(bool).sum())
-    print('num_edges new_adj:')
-    print(new_adj.astype(bool).sum())
-    print('number of edges different:')
-    print((adj_mat.astype(bool) != new_adj.astype(bool)).sum())
-    print('adj_mat - new_adj edges')
-    print((adj_mat.astype(bool).astype(int) - new_adj.astype(bool).astype(int) == 1).sum())
-    print('new_adj - adj_mat edges')
-    print((new_adj.astype(bool).astype(int) - adj_mat.astype(bool).astype(int) == 1).sum())
+    # node_order = list(nx.topological_sort(g))
+    # new_order = switch_perm(node_order, i, j)
+    # perm = list(range(p))
+    # perm = switch_perm(perm, i, j)
+    # new_prec = permute(prec, perm)
+    # new_adj, new_omega = prec2adj(prec, perm)
+    # new_adj[abs(new_adj) < 1e-10] = 0
+    #
+    # print('=========')
+    # print('same precision matrix:')
+    # print(np.allclose(adj2prec(new_adj, new_omega), prec))
+    #
+    # print('=========')
+    # print('adj_mat:')
+    # print(adj_mat.astype(bool).astype(int))
+    # print('new_adj:')
+    # print(new_adj.astype(bool).astype(int))
+    #
+    # print('num edges adj_mat:')
+    # print(adj_mat.astype(bool).sum())
+    # print('num_edges new_adj:')
+    # print(new_adj.astype(bool).sum())
+    # print('number of edges different:')
+    # print((adj_mat.astype(bool) != new_adj.astype(bool)).sum())
+    # print('adj_mat - new_adj edges')
+    # print((adj_mat.astype(bool).astype(int) - new_adj.astype(bool).astype(int) == 1).sum())
+    # print('new_adj - adj_mat edges')
+    # print((new_adj.astype(bool).astype(int) - adj_mat.astype(bool).astype(int) == 1).sum())
 
     # print('=========')
     # print('covered edge:')

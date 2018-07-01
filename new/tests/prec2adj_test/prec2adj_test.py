@@ -3,6 +3,7 @@ from utils import graph_utils
 import numpy as np
 import random
 import ipdb
+import networkx as nx
 
 
 def switch_perm(curr_perm, i, j):
@@ -53,7 +54,10 @@ class TestPrec2Adj(unittest.TestCase):
             if len(cov_edges) == 0:
                 continue
             i, j = random.sample(list(cov_edges), 1)[0]
-            adj2, omega2 = graph_utils.prec2adj(prec, switch_perm(list(range(p)), i, j))
+            graph_utils.reverse_edge(g, i, j)
+
+            perm = list(nx.topological_sort(g))
+            adj2, omega2 = graph_utils.prec2adj(prec, perm)
             adj2[abs(adj2) < 1e-10] = 0
             n_edges1 = adj.astype(bool).sum()
             n_edges2 = adj2.astype(bool).sum()
@@ -64,6 +68,74 @@ class TestPrec2Adj(unittest.TestCase):
                 print(adj2.astype(bool).astype(int))
                 ipdb.set_trace()
             self.assertTrue(n_edges1 == n_edges2)
+
+    # def test_same_num_edges_specific1(self):
+    #     adj = np.array([
+    #         [0., 0.49063094, 0.93037588, -0.66544737, 0.29026215],
+    #         [0., 0., 0., -0.25672271, 0.76907497],
+    #         [0., 0., 0., 0.40881904, 0.40771576],
+    #         [0., 0., 0., 0., 0.45012436],
+    #         [0., 0., 0., 0., 0.]
+    #     ])
+    #
+    #     prec = graph_utils.adj2prec(adj)
+    #     perm = [2, 1, 0, 3, 4]
+    #     adj2, _ = graph_utils.prec2adj(prec, perm)
+    #     adj2[abs(adj2) < 1e-10] = 0
+    #     print(adj)
+    #     print(adj2)
+    #
+    #     n_edges1 = adj.astype(bool).sum()
+    #     n_edges2 = adj2.astype(bool).sum()
+    #     if n_edges1 != n_edges2:
+    #         ipdb.set_trace()
+    #     self.assertTrue(n_edges1 == n_edges2)
+
+    # def test_same_num_edges_specific2(self):
+    #     adj = np.zeros([5, 5])
+    #     adj[0, 2] = graph_utils.RAND_RANGE()
+    #     adj[0, 3] = graph_utils.RAND_RANGE()
+    #     adj[0, 4] = graph_utils.RAND_RANGE()
+    #     adj[1, 2] = graph_utils.RAND_RANGE()
+    #
+    #     prec = graph_utils.adj2prec(adj)
+    #     perm = [3, 1, 2, 0, 4]
+    #     adj2, _ = graph_utils.prec2adj(prec, perm)
+    #     adj2[abs(adj2) < 1e-10] = 0
+    #     print(adj)
+    #     print(adj2)
+    #
+    #     n_edges1 = adj.astype(bool).sum()
+    #     n_edges2 = adj2.astype(bool).sum()
+    #     if n_edges1 != n_edges2:
+    #         print(n_edges1)
+    #         print(n_edges2)
+    #         ipdb.set_trace()
+    #     self.assertTrue(n_edges1 == n_edges2)
+
+    # def test_same_num_edges_specific2(self):
+    #     adj = np.zeros([5, 5])
+    #     adj[0, 1] = graph_utils.RAND_RANGE()
+    #     adj[0, 2] = graph_utils.RAND_RANGE()
+    #     adj[2, 3] = graph_utils.RAND_RANGE()
+    #     adj[2, 4] = graph_utils.RAND_RANGE()
+    #
+    #     prec = graph_utils.adj2prec(adj)
+    #     print(np.linalg.inv(prec))
+    #     perm = [2, 1, 0, 3, 4]
+    #     adj2, _ = graph_utils.prec2adj(prec, perm)
+    #     adj2[abs(adj2) < 1e-10] = 0
+    #     print(adj)
+    #     print(adj2)
+    #
+    #     n_edges1 = adj.astype(bool).sum()
+    #     n_edges2 = adj2.astype(bool).sum()
+    #     if n_edges1 != n_edges2:
+    #         print(n_edges1)
+    #         print(n_edges2)
+    #         ipdb.set_trace()
+    #     self.assertTrue(n_edges1 == n_edges2)
+
 
     # def test_one_diff_edge(self):
     #     p = 10

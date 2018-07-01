@@ -3,7 +3,7 @@ library(bnlearn)
 source('sampling.r')
 
 test_that("same number of edges", {
-  p = 10
+  p = 5
   gnodes = as.character(1:p)
   g = bnlearn::random.graph(gnodes, 1, prob=.5)
   B = construct_B(g)
