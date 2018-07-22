@@ -7,7 +7,7 @@ import networkx as nx
 def sample_dags(g0, siginv, data, burn_in=100, thin_factor=20, iterations=1000):
     g_curr = g0.copy()
     cov_edges_curr = list(get_covered_edges(g_curr))
-    node_order_curr = nx.topological_sort(g_curr)
+    node_order_curr = list(nx.topological_sort(g_curr))
     sample_dags = []
     probs = []
     for t in range(iterations):
@@ -20,8 +20,6 @@ def sample_dags(g0, siginv, data, burn_in=100, thin_factor=20, iterations=1000):
         node_order_next = update_order(node_order_curr, xi, xj)
 
         # Compute the acceptance probability
-        print(p_curr_unnormalized, p_next_unnormalized)
-        print(set(g_next.edges) - set(g_curr.edges))
         p_curr_unnormalized = compute_log_posterior_unnormalized(g_curr, node_order_curr, siginv, data)
         p_next_unnormalized = compute_log_posterior_unnormalized(g_next, node_order_next, siginv, data)
         accept_prob = len(cov_edges_curr) / len(cov_edges_next) \
