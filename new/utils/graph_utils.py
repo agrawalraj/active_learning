@@ -316,13 +316,31 @@ def get_iessgraph(g, interventions, verbose=False):
     return replace_unprotected(g, protected_edges, verbose=verbose)
 
 
+def sample_random_dag_from_essgraph(essgraph):
+    essgraph_dir, essgraph_undir = essgraph
+    k = 0
+    while True:
+        k += 1
+        print(k)
+        g = essgraph_dir.copy()
+        for i, j in essgraph_undir.edges:
+            i_, j_ = (i, j) if bernoulli(.5) else (j, i)
+            g.add_edge(i_, j_)
+        if nx.is_directed_acyclic_graph(g):
+            return g
+
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    p = 10
+    p = 30
     g = random_graph(p, .5)
     adj = random_adj(g)
     show_graph(g, plt, adj, np.eye(10))
+    essgraph = get_essgraph(g)
+    essgraph_dir, essgraph_undir = essgraph
+    print(len(essgraph_undir.edges))
+    g0 = sample_random_dag_from_essgraph(essgraph)
 
 
 

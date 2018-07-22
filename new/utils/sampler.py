@@ -20,10 +20,10 @@ def sample_dags(g0, siginv, data, burn_in=100, thin_factor=20, iterations=1000):
         node_order_next = update_order(node_order_curr, xi, xj)
 
         # Compute the acceptance probability
-        print(p_curr_unnormalized, p_next_unnormalized)
         print(set(g_next.edges) - set(g_curr.edges))
         p_curr_unnormalized = compute_log_posterior_unnormalized(g_curr, node_order_curr, siginv, data)
         p_next_unnormalized = compute_log_posterior_unnormalized(g_next, node_order_next, siginv, data)
+        print(p_curr_unnormalized, p_next_unnormalized)
         accept_prob = len(cov_edges_curr) / len(cov_edges_next) \
                       * np.exp(p_next_unnormalized - p_curr_unnormalized)
         accept_prob = np.min([1, accept_prob])
