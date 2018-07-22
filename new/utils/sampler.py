@@ -3,11 +3,11 @@ from __future__ import division  # in case python2 is used
 from graph_utils import *
 import numpy as np
 
-
 def sample_dags(g0, siginv, data, burn_in=100, thin_factor=20, iterations=1000):
     g_curr = g0.copy()
     cov_edges_curr = list(get_covered_edges(g_curr))
     sample_dags = []
+    probs = []
     for t in range(iterations):
         # Randomly select a covered edge to flip
         np.random.shuffle(cov_edges_curr)
@@ -19,6 +19,8 @@ def sample_dags(g0, siginv, data, burn_in=100, thin_factor=20, iterations=1000):
         # Compute the acceptance probability
         p_curr_unnormalized = compute_log_posterior_unnormalized(g_curr, siginv, data)
         p_next_unnormalized = compute_log_posterior_unnormalized(g_next, siginv, data)
+        print(p_curr_unnormalized, p_next_unnormalized)
+        print(set(g_next.edges) - set(g_curr.edges))
         accept_prob = len(cov_edges_curr) / len(cov_edges_next) \
                       * np.exp(p_next_unnormalized - p_curr_unnormalized)
         accept_prob = np.min([1, accept_prob])
@@ -28,10 +30,11 @@ def sample_dags(g0, siginv, data, burn_in=100, thin_factor=20, iterations=1000):
         if accepted == 1:
             g_curr = g_next.copy()  # should we copy this graph?
             cov_edges_curr = cov_edges_next.copy()
+            p_curr_unnormalized = p_next_unnormalized
         if t > burn_in and t % thin_factor == 0:
             sample_dags.append(g_curr)
-
-    return sample_dags
+            probs.append(p_curr_unnormalized)
+    return sample_dags, probs
 
 
 def sample_dags_uniform(g0):
@@ -44,4 +47,5 @@ if __name__ == '__main__':
     omega = np.diag(omega)
     siginv = adj2prec(adj_mat, omega)
     data = sample_graph_int(g, adj_mat, [2, 4, 5, 9], [5]*4) 
+    sample_dags(g0, siginv, data)
 
