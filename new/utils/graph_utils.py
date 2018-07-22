@@ -49,8 +49,13 @@ def reverse_edge(g, xi, xj):
     g.add_edge(xj, xi)
 
 
-def show_graph(g, plt):
-    nx.draw(g)
+def show_graph(g, plt, B=None, omega=None):
+    if B is not None:
+        for i, j in g.edges:
+            g[i][j]['weight'] = B[i, j]
+    a = nx.nx_agraph.to_agraph(g)
+    a.layout('dot')
+    a.draw('test.png')
     plt.ion()
     plt.show()
 
@@ -159,9 +164,9 @@ def concatenate_data(old_data, new_data):
     return [[*old_data[i], *new_data[i]] for i in range(len(old_data))]
 
 
-def compute_log_posterior_unnormalized(g, siginv, int_data):
+def compute_log_posterior_unnormalized(g, node_order, siginv, int_data):
     log_post = 0
-    adj_mat, omega = prec2adj(siginv, g.nodes)
+    adj_mat, omega = prec2adj(siginv, node_order)
     for i in range(len(g.nodes)):
         data = int_data[i]
         if len(data) != 0:
@@ -271,7 +276,7 @@ def replace_unprotected(g, protected_edges, u=None, verbose=False):
                             if verbose: print('edge %s-%s protected by rule (c)' % (i, j))
                             break
                         else:
-                            print('edge %s-%s undecided by rule (c)' % (i, j))
+                            if verbose: print('edge %s-%s undecided by rule (c)' % (i, j))
                             flag = UNDECIDED
 
             # check configuration (d)
@@ -301,167 +306,25 @@ def replace_unprotected(g, protected_edges, u=None, verbose=False):
 
 def get_essgraph(g, verbose=False):
     protected_edges = get_vstructures(g)
-    print(protected_edges)
     return replace_unprotected(g, protected_edges, verbose=verbose)
 
 
 def get_iessgraph(g, interventions, verbose=False):
     cut_edges = set.union(*(set(g.in_edges(node)) | set(g.out_edges(node)) for node in interventions))
     protected_edges = get_vstructures(g) | cut_edges
-    print(protected_edges)
     return replace_unprotected(g, protected_edges, verbose=verbose)
 
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    g = nx.DiGraph()
-    g.add_edges_from([(0,2), (0, 3), (0, 4), (1,2)])
-    adj = np.zeros([5, 5])
-    adj[0, 2] = RAND_RANGE()
-    adj[0, 3] = RAND_RANGE()
-    adj[0, 4] = RAND_RANGE()
-    adj[1, 2] = RAND_RANGE()
-    reverse_edge(g, 0, 3)
-    perm = list(nx.topological_sort(g))
-    print(perm)
+    p = 10
+    g = random_graph(p, .5)
+    adj = random_adj(g)
+    show_graph(g, plt, adj, np.eye(10))
 
 
-    # adj = permute(adj, [3, 1, 2, 0, 4])
 
-    prec = adj2prec(adj)
-    adj2, _ = prec2adj(prec, perm)
-    adj2[abs(adj2) < 1e-10] = 0
-    print('adj', adj)
-    print('adj2', adj2)
-
-    n_edges1 = adj.astype(bool).sum()
-    n_edges2 = adj2.astype(bool).sum()
-    print(n_edges1, n_edges2)
-
-    # p = 5
-    # g = random_graph(p, .5)
-    # adj_mat = random_adj(g)
-    # omega = np.random.uniform(.5, 1, 10)
-    # omega = np.diag(omega)
-    # siginv = adj2prec(adj_mat, omega)
-    # adj_mat2, omega2 = prec2adj(siginv, range(10))
-    # l, d, _ = ldl(siginv)
-    # print(np.allclose(adj_mat, adj_mat2))
-    # print(np.allclose(omega, omega2))
-    #
-    # print(get_covered_edges(g))
-    # int_data = sample_graph_int(g, adj_mat, [2, 4, 5, 9], [5]*4)
-    # log_post = compute_log_posterior_unnormalized(g, siginv, int_data)
-
-    # d, u = get_essgraph(g)
-    # print(list(d.edges))
-    # print(list(u.edges))
-    # print(set(d.edges) | set(u.edges) == set(g.edges))
-
-    # g = nx.DiGraph()
-    # g.add_nodes_from(range(3))
-    # g.add_edges_from([(3, 1), (1, 2)])
-    # print(get_vstructures(g))
-    # get_essgraph(g)
-    #
-    # g2 = nx.DiGraph()
-    # g2.add_nodes_from(range(3))
-    # g2.add_edges_from([(3, 2), (1, 2)])
-    # print(get_vstructures(g2))
-    # get_essgraph(g2)
-
-    # g2 = nx.DiGraph()
-    # g2.add_nodes_from(range(4))
-    # g2.add_edges_from([
-    #     (0, 3),
-    #     (1, 3),
-    #     (2, 3),
-    #     (2, 4),
-    #     (3, 4)
-    # ])
-    # d, u = get_essgraph(g2)
-    # print(list(d.edges))
-    # print(list(u.edges))
-
-    # g2 = nx.DiGraph()
-    # g2.add_nodes_from(range(4))
-    # g2.add_edges_from([
-    #     (0, 1),
-    #     (1, 2),
-    #     (0, 3),
-    #     (1, 2),
-    #     (1, 4),
-    #     (2, 3)
-    # ])
-    # d, u = get_essgraph(g2)
-    # print(list(d.edges))
-    # print(list(u.edges))
-    #
-    # d, u = get_iessgraph(g2, [2])
-    # print(list(d.edges))
-    # print(list(u.edges))
-
-    # def switch_perm(curr_perm, i, j):
-    #     a, b = curr_perm.index(i), curr_perm.index(j)
-    #     new_perm = curr_perm.copy()
-    #     new_perm[a], new_perm[b] = j, i
-    #     return new_perm
-    #
-    #
-    # def int_gen():
-    #     return np.random.randint(1, 5)
-    #
-    # import random
-    #
-    # adj_mat = random_adj(g)
-    # prec = adj2prec(adj_mat)
-    # cov_edges = get_covered_edges(g)
-    # i, j = random.sample(list(cov_edges), 1)[0]
-    # adj_mat2, _ = prec2adj(prec, range(p))
-    # adj_mat2[abs(adj_mat2) < 1e-10] = 0
-    # print('=========')
-    # print('adj_mat:')
-    # print(adj_mat.astype(bool).astype(int))
-    # print('adj_mat2:')
-    # print(adj_mat2.astype(bool).astype(int))
-
-    # node_order = list(nx.topological_sort(g))
-    # new_order = switch_perm(node_order, i, j)
-    # perm = list(range(p))
-    # perm = switch_perm(perm, i, j)
-    # new_prec = permute(prec, perm)
-    # new_adj, new_omega = prec2adj(prec, perm)
-    # new_adj[abs(new_adj) < 1e-10] = 0
-    #
-    # print('=========')
-    # print('same precision matrix:')
-    # print(np.allclose(adj2prec(new_adj, new_omega), prec))
-    #
-    # print('=========')
-    # print('adj_mat:')
-    # print(adj_mat.astype(bool).astype(int))
-    # print('new_adj:')
-    # print(new_adj.astype(bool).astype(int))
-    #
-    # print('num edges adj_mat:')
-    # print(adj_mat.astype(bool).sum())
-    # print('num_edges new_adj:')
-    # print(new_adj.astype(bool).sum())
-    # print('number of edges different:')
-    # print((adj_mat.astype(bool) != new_adj.astype(bool)).sum())
-    # print('adj_mat - new_adj edges')
-    # print((adj_mat.astype(bool).astype(int) - new_adj.astype(bool).astype(int) == 1).sum())
-    # print('new_adj - adj_mat edges')
-    # print((new_adj.astype(bool).astype(int) - adj_mat.astype(bool).astype(int) == 1).sum())
-
-    # print('=========')
-    # print('covered edge:')
-    # print(i, j)
-    # print("omega' closeto omega:")
-    # print(np.isclose(np.ones(p), np.diag(new_omega)))
-    # print("adj' closeto adj:")
-    # print(np.isclose(adj_mat, new_adj))
 
 
 

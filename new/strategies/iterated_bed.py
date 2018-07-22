@@ -5,10 +5,10 @@ from utils import graph_utils
 
 
 # TODO: check when bed_score and sample_dags finished
-def iterated_bed(g, data, config):
+def iterated_bed(g, siginv, data, config):
     interventions = []
     n_samples = []
-    samp_dags = sampler.sample_dags(g, data)
+    samp_dags = sampler.sample_dags(g, siginv, data)
     essgraph = graph_utils.get_essgraph(g)
     for k in range(config.max_interventions):
         intervention_scores = []
@@ -20,7 +20,10 @@ def iterated_bed(g, data, config):
                 intervention_scores.append(intervention_score)
         best_intervention = np.argmax(intervention_scores)
         interventions.append(best_intervention)
-        n_samples.append(config.n_samples / (config.n_batches * config.max_interventions))
+        n = config.n_samples / (config.n_batches * config.max_interventions)
+        if int(n) != n:
+            raise ValueError('number of samples divided by (number of batches * max number of interventions) is not an integer')
+        n_samples.append(int(n))
 
     return interventions, n_samples
 

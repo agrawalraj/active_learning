@@ -67,11 +67,11 @@ class TestPrec2Adj(unittest.TestCase):
             eigs = np.linalg.eigvals(prec)
             print(max(eigs) / min(eigs))
             if n_edges1 != n_edges2:
-                print(eigs)
                 print(n_edges1, n_edges2)
                 print(cov_edge)
                 print(adj.astype(bool).astype(int))
                 print(adj2.astype(bool).astype(int))
+                print(adj2)
                 ipdb.set_trace()
             self.assertTrue(n_edges1 == n_edges2)
 
