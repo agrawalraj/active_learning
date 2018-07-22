@@ -173,7 +173,6 @@ def compute_log_posterior_unnormalized(g, node_order, siginv, int_data):
             cov_mat_int = adj2cov_int(adj_mat, i)
             m = multivariate_normal.pdf(data, cov=cov_mat_int)
             log_post += np.sum(np.log(m))
-    print(adj_mat)
     return log_post
 
 
