@@ -219,7 +219,7 @@ def split_digraph(g):
     return essgraph_dir, essgraph_undir
 
 
-def get_vstructures(g):
+def get_vstructures(g, removed_nodes=None):
     protected_edges = set()
 
     for j in g.nodes:
@@ -309,9 +309,12 @@ def get_essgraph(g, verbose=False):
     return replace_unprotected(g, protected_edges, verbose=verbose)
 
 
-def get_iessgraph(g, interventions, verbose=False):
+def get_iessgraph(g, interventions, verbose=False, cpdag_known=True):
     cut_edges = set.union(*(set(g.in_edges(node)) | set(g.out_edges(node)) for node in interventions))
-    protected_edges = get_vstructures(g) | cut_edges
+    if cpdag_known:
+        protected_edges = get_vstructures(g) | cut_edges
+    else:
+        protected_edges = cut_edges | get_vstructures(g, removed_nodes=[interventions])
     return replace_unprotected(g, protected_edges, verbose=verbose)
 
 
