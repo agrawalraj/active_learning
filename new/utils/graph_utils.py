@@ -282,7 +282,7 @@ def replace_unprotected(g, protected_edges, u=None, verbose=False):
             # check configuration (d)
             if flag != PROTECTED:
                 for k1, k2 in itr.combinations(d.predecessors(j), 2):
-                    if is_neighbor(k2, i) and is_neighbor(k2, i) and not is_adjacent(k1, k2):
+                    if is_neighbor(k2, i) and is_neighbor(k1, i) and not is_adjacent(k1, k2):
                         if edge_flags[(k1, j)] == PROTECTED and edge_flags[(k2, j)] == PROTECTED:
                             flag = PROTECTED
                             if verbose: print('edge %s-%s protected by rule (d)' % (i, j))
@@ -329,18 +329,22 @@ def sample_random_dag_from_essgraph(essgraph):
             return g
 
 
+def dag_from_amat(amat):
+    g = nx.DiGraph()
+    for (i, j), val in np.ndenumerate(amat):
+        if val == 1:
+            g.add_edge(i, j)
+    return g
+
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    p = 30
-    g = random_graph(p, .5)
-    adj = random_adj(g)
-    show_graph(g, plt, adj, np.eye(10))
-    essgraph = get_essgraph(g)
-    essgraph_dir, essgraph_undir = essgraph
-    print(len(essgraph_undir.edges))
-    g0 = sample_random_dag_from_essgraph(essgraph)
-
+    g = nx.DiGraph()
+    g.add_edges_from([(1, 2), (1, 3), (2, 3)])
+    essgraph_dir, essgraph_undir = get_essgraph(g)
+    print(essgraph_dir.edges)
+    print(essgraph_undir.edges)
 
 
 
