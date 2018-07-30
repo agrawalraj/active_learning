@@ -68,6 +68,16 @@ def graph2adj(g):
     return adj
 
 
+def get_target_parent_probs(target, adj_mats):
+    num_nodes = adj_mats[0].shape[0]
+    probs = np.array(num_nodes)
+    avg_adj_mat = np.zeros(adj_mats[0].shape)
+    for adj_mat in adj_mats:
+        avg_adj_mat += adj_mat
+    avg_adj_mat *= 1 / len(adj_mats)
+    return(avg_adj_mat[target, :])
+
+
 def random_adj(g, num_gen=RAND_RANGE):
     p = len(g.nodes)
     adj_mat = np.zeros([p, p])
