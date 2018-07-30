@@ -99,7 +99,10 @@ random_transposition = function(perm){
   return(list(perm_next, min(root_idx, neighb_idx)))
 }
 
-minIMAP_MCMC = function(data, interventions, corr_mat, alpha, gamma, n_iter, save_step=100, path='../data/TEMP_DAGS/'){
+minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter=50000, save_step=100, path='../data/TEMP_DAGS/'){
+  data = read.csv(data_path)
+  interventions = read.csv(intervention_path)
+  corr_mat = cor(data[interventions == -1, ]) # -1 is flag for observational data
   all_targets = list()
   all_targets[[1]] = integer(0) # observation data marker
   possible_interventions = unique(interventions)
