@@ -2,16 +2,19 @@ from utils import intervention_scores as scores
 import numpy as np
 import os
 from utils import graph_utils
+import pandas as pd
 
 
 def _write_data(data):
+    n_nodes = len(data)
     all_samples = []
     iv_nodes = []
     for iv_node, samples in data:
         all_samples.extend(samples)
         iv_nodes.extend([iv_node]*len(samples))
-    np.savetxt('../data/tmp-data/samples.txt', all_samples)
-    np.savetxt('../data/tmp-data/interventions.txt', np.array(iv_nodes, dtype=int))
+    df = pd.DataFrame(all_samples, columns=[str(i) for i in range(n_nodes)])
+    df.to_csv('data/tmp-data/samples.csv')
+    pd.Series(iv_nodes).to_csv('data/tmp-data/interventions.csv', index=False)
 
 
 def _load_dags(nsamples):
