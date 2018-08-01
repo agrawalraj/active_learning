@@ -20,7 +20,7 @@ def _write_data(data):
 def _load_dags(nsamples):
     dags = []
     for i in range(nsamples):
-        amat = np.loadtxt('../data/TMP-DAGS/%d.csv' % i)
+        amat = np.loadtxt('../data/TEMP_DAGS/%d.csv' % i)
         dag = graph_utils.dag_from_amat(amat)
         dags.append(dag)
     return dags
