@@ -139,7 +139,7 @@ random_transposition = function(perm){
   return(list(perm_next, min(root_idx, neighb_idx)))
 }
 
-minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter=50000, save_step=100, path='../data/TEMP_DAGS/'){
+minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter=500, save_step=100, path='../data/TEMP_DAGS/'){
   data = as.data.frame(read.csv(data_path))
   p = ncol(data)
   colnames(data) = as.character(1:p)
@@ -170,7 +170,6 @@ minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter
   scores = c()
   emp_dags = list()
   for (i in 1:n_iter){
-    print(i)
     out = random_transposition(pi_prev)
     x_prop = out[[1]]
     j = out[[2]]
@@ -190,9 +189,13 @@ minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter
     }
     emp_dags[[i]] = emp_dag_prev
     scores = c(scores, p_prev)
+    print(i)
+    print('what')
+    print(save_step)
     if(i %% save_step == 0){
       print('about data')
-      write.table(amat(emp_dag_prev), paste(path, i, sep=''))
+      index = i / save_step
+      write.csv(amat(emp_dag_prev), paste(path, index, sep=''), row.names=FALSE)
       print('saved data')
     }
   }
@@ -208,5 +211,7 @@ gamma = as.numeric(args[4])
 n_iter = as.numeric(args[5])
 save_step = as.numeric(args[6])
 path = args[7]
+print(n_iter)
+print(class(save_step))
 
-minIMAP_MCMC(data_path, intervention_path, gamma, n_iter, save_step, path)
+samps = minIMAP_MCMC(data_path, intervention_path, alpha, gamma, n_iter, save_step, path)

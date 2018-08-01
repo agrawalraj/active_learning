@@ -1,8 +1,9 @@
 from __future__ import division  # in case python2 is used
 
 import os
-import glob
+import shutil
 import numpy as np
+import pandas as pd
 import networkx as nx
 import itertools as itr
 from scipy.stats import multivariate_normal
@@ -348,13 +349,26 @@ def run_min_imap(data_path, intervention_path, alpha=.05, gamma=1,
     n_iter=50000, save_step=100, path='../data/TEMP_DAGS/', delete=False):
     # delete all DAGS in TEMP FOLDER
     if delete:
-        files = glob.glob(path)
-        for f in files:
-            os.remove(f)
+        try:
+            shutil.rmtree(path)
+            os.mkdir(path)
             print('All files deleted in ' + path)
+        except Exception as e:
+            os.mkdir(path)
+            print('Made TEMP DAG directory')
     r_command = 'Rscript minIMAP.r {} {} {} {} {} {} {}'.format(data_path, intervention_path, 
         str(alpha), str(gamma), str(n_iter), str(save_step), path)
     os.system(r_command)
+
+
+def load_adj_mats(path='../data/TEMP_DAGS/'):
+    adj_mats = []
+    paths = os.listdir(path)
+    for file_path in paths:
+        if 'score' not in path:
+            adj_mat = pd.read_csv(path + file_path)
+            adj_mats.append(adj_mat.as_matrix())
+    return(adj_mats)
 
 
 def dag_from_amat(amat):
