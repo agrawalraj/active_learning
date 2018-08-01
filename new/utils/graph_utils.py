@@ -1,5 +1,7 @@
 from __future__ import division  # in case python2 is used
 
+import os
+import glob
 import numpy as np
 import networkx as nx
 import itertools as itr
@@ -342,6 +344,19 @@ def sample_random_dag_from_essgraph(essgraph):
             return g
 
 
+def run_min_imap(data_path, intervention_path, alpha=.05, gamma=1, 
+    n_iter=50000, save_step=100, path='../data/TEMP_DAGS/', delete=False):
+    # delete all DAGS in TEMP FOLDER
+    if delete:
+        files = glob.glob(path)
+        for f in files:
+            os.remove(f)
+            print('All files deleted in ' + path)
+    r_command = 'Rscript minIMAP.r {} {} {} {} {} {} {}'.format(data_path, intervention_path, 
+        str(alpha), str(gamma), str(n_iter), str(save_step), path)
+    os.system(r_command)
+
+
 def dag_from_amat(amat):
     g = nx.DiGraph()
     for (i, j), val in np.ndenumerate(amat):
@@ -358,12 +373,4 @@ if __name__ == '__main__':
     essgraph_dir, essgraph_undir = get_essgraph(g)
     print(essgraph_dir.edges)
     print(essgraph_undir.edges)
-
-
-
-
-
-
-
-
 
