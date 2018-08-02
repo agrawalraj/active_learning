@@ -367,7 +367,7 @@ def load_adj_mats(path=config.TEMP_DAG_FOLDER):
     adj_mats = []
     paths = os.listdir(path)
     for file_path in paths:
-        if 'score' not in path:
+        if 'score' not in file_path and '.DS_Store' not in file_path:
             adj_mat = pd.read_csv(path + file_path)
             adj_mats.append(adj_mat.as_matrix())
     return(adj_mats)
