@@ -3,6 +3,46 @@ library(mvtnorm)
 library(pcalg)
 library(gRbase)
 
+incident_mat = function(g){
+  arcset = matrix(as.numeric(arcs(g)), ncol=2)
+  p = nnodes(g)
+  incident = matrix(0, p, p)
+  incident[arcset] = 1
+  return(incident)
+}
+
+ci_min_imap_fz = function(corr_mat, n, perm, alpha){
+  # G_star - bnlearn object 
+  # perm - character vector of nodes
+  
+  # returns bnlearn object of minimal i-map
+  
+  p = length(perm) # number of nodes
+  e = empty.graph(as.character(1:p))
+  arc_vec = c()
+  perm = as.character(perm)
+  for(i in 1:(p-1)){
+    pi_i = perm[i]
+    for(j in (i + 1):p){
+      pi_j = perm[j]
+      S = perm[1:(j-1)]
+      S = S[S != pi_i]
+      cutoff = qnorm(1 - alpha/2)
+      fz_stat = condIndFisherZ(as.numeric(pi_i), as.numeric(pi_j), as.numeric(S), corr_mat, n, cutoff)
+      if(fz_stat == FALSE){
+        arc_vec = c(arc_vec, pi_i, pi_j)
+      }
+      
+    }
+  }
+  if (length(arc_vec) > 0){
+    arc_set = matrix(arc_vec, ncol=2, byrow=TRUE,
+                     dimnames=list(NULL, c("from", "to")))
+    arcs(e) = arc_set
+  }
+  return(e)
+}
+
 update_emp_DAG = function(g_hat, new_perm, prev_perm, j, corr_mat, n, alpha_level){
   p = nnodes(g_hat)
   e = empty.graph(as.character(1:p))
@@ -43,26 +83,28 @@ update_emp_DAG = function(g_hat, new_perm, prev_perm, j, corr_mat, n, alpha_leve
 
 calc_intervention_prob = function(g, data, interventions){
   data = as.data.frame(data)
-  node_scores = bnlearn::score(g, data, type='bge', by.node=TRUE)
+  node_scores = bnlearn::score(g, data, type='bge', by.node=TRUE) # observational score
   unique_interventions = unique(interventions)
-  for (i in 1:length(unique_interventions)){
-    intervened_node = unique_interventions[i]
-    parents_intervened_node = parents(g, intervened_node)
-    g_sub = empty.graph(c(intervened_node, parents_intervened_node))
-    if(length(parents_intervened_node) > 0){
-      for(j in 1:length(parents_intervened_node)){
-        g_sub = set.arc(g_sub, parents_intervened_node[j],intervened_node)
+  for (i in 1:length(unique_interventions)){ # replace score if intervened on
+    if (unique_interventions[i] != -1){ # -1 is flag for observational data
+      intervened_node = unique_interventions[i]
+      parents_intervened_node = bnlearn::parents(g, intervened_node)
+      g_sub = empty.graph(c(intervened_node, parents_intervened_node))
+      if(length(parents_intervened_node) > 0){
+        for(j in 1:length(parents_intervened_node)){
+          g_sub = set.arc(g_sub, parents_intervened_node[j],intervened_node)
+        }
       }
+      mask = interventions != intervened_node
+      data_sub = data[c(intervened_node, parents_intervened_node)]
+      colnames_sub = colnames(data_sub)
+      data_sub = data_sub[mask, ]
+      data_sub = as.data.frame(data_sub) # R does does weird stuff converting data frame to vector
+      colnames(data_sub) = colnames_sub
+      intervened_node_score = bnlearn::score(g_sub, data_sub, type='bge', by.node=TRUE)
+      intervened_node_score = intervened_node_score[intervened_node] # Just want score of intervened node
+      node_scores[as.numeric(intervened_node)] = intervened_node_score
     }
-    mask = interventions != intervened_node
-    data_sub = data[c(intervened_node, parents_intervened_node)]
-    colnames_sub = colnames(data_sub)
-    data_sub = data_sub[mask, ]
-    data_sub = as.data.frame(data_sub) # R does does weird stuff converting data frame to vector
-    colnames(data_sub) = colnames_sub
-    intervened_node_score = bnlearn::score(g_sub, data_sub, type='bge', by.node=TRUE)
-    intervened_node_score = intervened_node_score[intervened_node] # Just want score of intervened node
-    node_scores[as.numeric(intervened_node)] = intervened_node_score
   }
   return(sum(node_scores))
 }
@@ -99,24 +141,35 @@ random_transposition = function(perm){
   return(list(perm_next, min(root_idx, neighb_idx)))
 }
 
-minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter=50000, save_step=100, path='../data/TEMP_DAGS/'){
-  data = read.csv(data_path)
-  interventions = read.csv(intervention_path)
+minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter=500, save_step=100, path='../data/TEMP_DAGS/'){
+  data = as.data.frame(read.csv(data_path))
+  p = ncol(data)
+  colnames(data) = as.character(1:p)
+  interventions = as.character(read.csv(intervention_path)[, 1])
   corr_mat = cor(data[interventions == -1, ]) # -1 is flag for observational data
   all_targets = list()
   all_targets[[1]] = integer(0) # observation data marker
   possible_interventions = unique(interventions)
   if(length(possible_interventions) > 0){
     for(i in 1:length(possible_interventions)){
-      all_targets[[i + 1]] = as.numeric(possible_interventions[i])
+      if(as.numeric(possible_interventions[i]) != -1){
+        all_targets[[i + 1]] = as.numeric(possible_interventions[i])
+      }
     }
   }
-  gie_score_fn <- new("GaussL0penIntScore", data, all_targets, as.numeric(interventions)) # BIC score
+  intervention_index = interventions
+  intervention_index[-1] = 1 # observational data is at index 1 in all_targets list
+  if(length(all_targets) > 1){
+    for(i in 2:length(all_targets)){
+      target = all_targets[[i]]
+      intervention_index[target] = i 
+    }
+  }
+  gie_score_fn <- new("GaussL0penIntScore", data, all_targets, intervention_index) # BIC score
   gies.fit <- gies(gie_score_fn)
   weights = gies.fit$repr$weight.mat()
   weights[weights != 0, ] = 1 # convert to adjacency matrix
-  pi_0 = topoSort(weights)
-  print(pi_0)
+  pi_0 = as.character(topoSort(weights))
   n = dim(data)[1]
   p = length(pi_0)
   pi_prev = pi_0
@@ -146,11 +199,29 @@ minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter
     }
     emp_dags[[i]] = emp_dag_prev
     scores = c(scores, p_prev)
+    print(i)
+    print('what')
+    print(save_step)
+    if(i %% save_step == 0){
+      print('about data')
+      index = i / save_step
+      write.csv(amat(emp_dag_prev), paste(path, index, sep=''), row.names=FALSE)
+      print('saved data')
+    }
   }
-  if(i %% save_step == 0){
-    write.csv(amat(emp_dag_prev), paste(path, i, sep=''))
-  }
-  write.csv(scores, paste(path, 'scores', sep=''))
+  write.csv(scores, paste(path, 'scores', sep=''), row.names=FALSE)
   return(list(scores, accepted, emp_dags))
 }
 
+args = commandArgs(trailingOnly=TRUE)
+data_path = args[1]
+intervention_path = args[2]
+alpha = as.numeric(args[3])
+gamma = as.numeric(args[4])
+n_iter = as.numeric(args[5])
+save_step = as.numeric(args[6])
+path = args[7]
+print(n_iter)
+print(class(save_step))
+
+samps = minIMAP_MCMC(data_path, intervention_path, alpha, gamma, n_iter, save_step, path)
