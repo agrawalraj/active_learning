@@ -145,7 +145,6 @@ minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter
   colnames(data) = as.character(1:p)
   interventions = as.character(read.csv(intervention_path)[, 1])
   corr_mat = cor(data[interventions == -1, ]) # -1 is flag for observational data
-  corr_mat = cor(data)
   all_targets = list()
   all_targets[[1]] = integer(0) # observation data marker
   possible_interventions = unique(interventions)
