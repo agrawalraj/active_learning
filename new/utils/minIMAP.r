@@ -146,20 +146,21 @@ minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter
   interventions = as.character(read.csv(intervention_path)[, 1])
   corr_mat = cor(data[interventions == -1, ]) # -1 is flag for observational data
   corr_mat = cor(data)
-  # all_targets = list()
-  # all_targets[[1]] = integer(0) # observation data marker
-  # possible_interventions = unique(interventions)
-  # if(length(possible_interventions) > 0){
-  #   for(i in 1:length(possible_interventions)){
-  #     all_targets[[i + 1]] = as.numeric(possible_interventions[i])
-  #   }
-  # }
-  # gie_score_fn <- new("GaussL0penIntScore", data, all_targets, as.numeric(interventions)) # BIC score
-  # gies.fit <- gies(gie_score_fn)
-  # weights = gies.fit$repr$weight.mat()
-  # weights[weights != 0, ] = 1 # convert to adjacency matrix
-  # pi_0 = topoSort(weights)
-  pi_0 = as.character(sample(1:p))
+  all_targets = list()
+  all_targets[[1]] = integer(0) # observation data marker
+  possible_interventions = unique(interventions)
+  if(length(possible_interventions) > 0){
+    for(i in 1:length(possible_interventions)){
+      if(as.numeric(possible_interventions[i]) != -1){
+        all_targets[[i + 1]] = as.numeric(possible_interventions[i])
+      }
+    }
+  }
+  gie_score_fn <- new("GaussL0penIntScore", data, all_targets, as.numeric(interventions)) # BIC score
+  gies.fit <- gies(gie_score_fn)
+  weights = gies.fit$repr$weight.mat()
+  weights[weights != 0, ] = 1 # convert to adjacency matrix
+  pi_0 = topoSort(weights)
   n = dim(data)[1]
   p = length(pi_0)
   pi_prev = pi_0
