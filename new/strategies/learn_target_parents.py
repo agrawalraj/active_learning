@@ -36,10 +36,10 @@ def _load_dags(nsamples):
     return dags
 
 
-def create_learn_target_parents(target):
+def create_learn_target_parents(target, n_iter=25000):
     def learn_target_parents(g, data: Dict[Any, np.array], config, batch_num):
         _write_data(data)
-        graph_utils.run_min_imap(DATA_PATH, INTERVENTION_PATH)
+        graph_utils.run_min_imap(DATA_PATH, INTERVENTION_PATH, n_iter=n_iter, delete=True)
         adj_mats = graph_utils.load_adj_mats()
         dags = [cd.from_amat(adj) for adj in adj_mats]
         scorer = scores.get_orient_parents_scorer(target, dags)
