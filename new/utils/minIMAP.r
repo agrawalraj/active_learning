@@ -160,7 +160,7 @@ minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter
   gies.fit <- gies(gie_score_fn)
   weights = gies.fit$repr$weight.mat()
   weights[weights != 0, ] = 1 # convert to adjacency matrix
-  pi_0 = topoSort(weights)
+  pi_0 = as.character(topoSort(weights))
   n = dim(data)[1]
   p = length(pi_0)
   pi_prev = pi_0
