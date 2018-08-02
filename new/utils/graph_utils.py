@@ -10,6 +10,7 @@ from scipy.stats import multivariate_normal
 from scipy.linalg import ldl
 import operator as op
 from collections import Counter
+import config
 
 
 def is_pos_def(x):
@@ -346,7 +347,7 @@ def sample_random_dag_from_essgraph(essgraph):
 
 
 def run_min_imap(data_path, intervention_path, alpha=.05, gamma=1, 
-    n_iter=50000, save_step=100, path='../data/TEMP_DAGS/', delete=False):
+    n_iter=50000, save_step=100, path=config.TEMP_DAG_FOLDER, delete=False):
     # delete all DAGS in TEMP FOLDER
     if delete:
         try:
@@ -356,12 +357,13 @@ def run_min_imap(data_path, intervention_path, alpha=.05, gamma=1,
         except Exception as e:
             os.mkdir(path)
             print('Made TEMP DAG directory')
-    r_command = 'Rscript minIMAP.r {} {} {} {} {} {} {}'.format(data_path, intervention_path, 
+    rfile = os.path.join(config.TOP_FOLDER, 'utils', 'minIMAP.r')
+    r_command = 'Rscript {} {} {} {} {} {} {} {}'.format(rfile, data_path, intervention_path,
         str(alpha), str(gamma), str(n_iter), str(save_step), path)
     os.system(r_command)
 
 
-def load_adj_mats(path='../data/TEMP_DAGS/'):
+def load_adj_mats(path=config.TEMP_DAG_FOLDER):
     adj_mats = []
     paths = os.listdir(path)
     for file_path in paths:

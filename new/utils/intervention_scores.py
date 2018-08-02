@@ -1,6 +1,8 @@
 import numpy as np
 from utils import graph_utils
 from collections import defaultdict
+import causaldag as cd
+from typing import List
 
 
 def bed_score(intervention, dags, essgraph):
@@ -25,10 +27,10 @@ def bed_score_targeted(intervention, dags, essgraph, target):
     return np.mean(scores)
 
 
-def get_orient_parents_scorer(target, dags):
+def get_orient_parents_scorer(target, dags: List[cd.DAG]):
     parent_counts = defaultdict(int)
     for dag in dags:
-        for p in dag.predecessors[target]:
+        for p in dag.parents[target]:
             parent_counts[p] += 1
     parent_probs = {p: c/len(dags) for p, c in parent_counts.items()}
     parent_shrinkage_scores = {p: probability_shrinkage(prob) for p, prob in parent_probs.items()}
@@ -36,17 +38,19 @@ def get_orient_parents_scorer(target, dags):
     def scorer(intervention):
         scores = []
         for dag in dags:
-            essgraph_dir, essgraph_undir = graph_utils.get_essgraph(dag)
-            iessgraph_dir, iessgraph_undir = graph_utils.get_iessgraph(dag, [intervention])
-            parents = dag.predecessors(target)
+            if intervention == -1: # observational
+                icpdag = dag.cpdag()
+            else:
+                icpdag = dag.interventional_cpdag([intervention])
+            parents = dag.parents[target]
             parents_oriented_by_intervention = [
                 p for p in parents
-                if not essgraph.has_edge(p, target) and iessgraph_dir.has_edge(p, target)
+                if (p, target) in icpdag.arcs
             ]
             score = sum(parent_shrinkage_scores[p] for p in parents_oriented_by_intervention)
             scores.append(score)
 
-        return np.mean(scores)
+        return np.mean(scores) if len(scores) != 0 else 0
 
     return scorer
 

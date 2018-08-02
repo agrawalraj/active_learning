@@ -5,6 +5,7 @@ from utils import graph_utils
 import numpy as np
 import os
 import causaldag as cd
+from collections import defaultdict
 
 
 def get_dataset_folder(dataset_num):
@@ -21,6 +22,7 @@ class SimulationConfig:
     n_dags: int
     strategy: str
     intervention_strength: float
+    starting_samples: int
 
     def save(self, dataset_num):
         params = {
@@ -31,7 +33,8 @@ class SimulationConfig:
             'edge_prob': self.edge_prob,
             'n_dags': self.n_dags,
             'strategy': self.strategy,
-            'intervention_strength': self.intervention_strength
+            'intervention_strength': self.intervention_strength,
+            'starting_samples': self.starting_samples
         }
         filename = get_dataset_folder(dataset_num) + 'params.yaml'
         yaml.dump(params, open(filename, 'w'), indent=2, default_flow_style=False)
@@ -60,39 +63,43 @@ def simulate(strategy, config, dataset_num):
         sys_utils.ensure_dir(graph_folder)
         np.savetxt(graph_folder + 'adjacency.csv', gdag.to_amat())
 
-        all_samples = [[] for _ in range(config.n_nodes)]
+        all_samples = {i: np.zeros([0, config.n_nodes]) for i in range(config.n_nodes)}
+        all_samples[-1] = gdag.sample(config.starting_samples)
         for batch in range(config.n_batches):
             print('Batch %d' % batch)
-            interventions, n_samples = strategy(gdag, all_samples, config)
-            new_samples = [[] for _ in range(config.n_nodes)]
-            for iv, n in zip(interventions, n_samples):
+            recommended_interventions = strategy(gdag, all_samples, config, batch)
+            for iv, nsamples in recommended_interventions.items():
                 g_iv = cd.GaussIntervention(
                     mean=config.intervention_strength,
                     variance=1
                 )
-                new_samples[iv] = gdag.sample_interventional({iv: g_iv}, n)
-            all_samples = graph_utils.concatenate_data(all_samples, new_samples)
+                new_samples = gdag.sample_interventional({iv: g_iv}, nsamples)
+                all_samples[iv] = np.vstack((all_samples[iv], new_samples))
 
         sys_utils.ensure_dir(graph_folder + 'samples/')
-        for i in range(config.n_nodes):
-            np.savetxt(graph_folder + 'samples/intervention=%d.csv' % i, all_samples[i])
+        for i, samples in all_samples.items():
+            np.savetxt(graph_folder + 'samples/intervention=%d.csv' % i, samples)
 
 
 if __name__ == '__main__':
-    from strategies import random_nodes
+    from strategies import random_nodes, learn_target_parents
+
+    n_nodes = 10
     strategies = {
-        'random': random_nodes.random_strategy
+        'random': random_nodes.random_strategy,
+        'learn-parents': learn_target_parents.create_learn_target_parents(n_nodes-1)
     }
-    strategy = 'random'
+    strategy = 'learn-parents'
     config = SimulationConfig(
         n_samples=100,
         n_batches=5,
         max_interventions=2,
-        n_nodes=10,
+        n_nodes=n_nodes,
         edge_prob=.5,
-        n_dags=100,
+        n_dags=1,
         strategy=strategy,
-        intervention_strength=2
+        intervention_strength=2,
+        starting_samples=250
     )
 
     simulate(strategies[strategy], config, 3)
