@@ -83,26 +83,28 @@ update_emp_DAG = function(g_hat, new_perm, prev_perm, j, corr_mat, n, alpha_leve
 
 calc_intervention_prob = function(g, data, interventions){
   data = as.data.frame(data)
-  node_scores = bnlearn::score(g, data, type='bge', by.node=TRUE)
+  node_scores = bnlearn::score(g, data, type='bge', by.node=TRUE) # observational score
   unique_interventions = unique(interventions)
-  for (i in 1:length(unique_interventions)){
-    intervened_node = unique_interventions[i]
-    parents_intervened_node = bnlearn::parents(g, intervened_node)
-    g_sub = empty.graph(c(intervened_node, parents_intervened_node))
-    if(length(parents_intervened_node) > 0){
-      for(j in 1:length(parents_intervened_node)){
-        g_sub = set.arc(g_sub, parents_intervened_node[j],intervened_node)
+  for (i in 1:length(unique_interventions)){ # replace score if intervened on
+    if (unique_interventions[i] != -1){ # -1 is flag for observational data
+      intervened_node = unique_interventions[i]
+      parents_intervened_node = bnlearn::parents(g, intervened_node)
+      g_sub = empty.graph(c(intervened_node, parents_intervened_node))
+      if(length(parents_intervened_node) > 0){
+        for(j in 1:length(parents_intervened_node)){
+          g_sub = set.arc(g_sub, parents_intervened_node[j],intervened_node)
+        }
       }
+      mask = interventions != intervened_node
+      data_sub = data[c(intervened_node, parents_intervened_node)]
+      colnames_sub = colnames(data_sub)
+      data_sub = data_sub[mask, ]
+      data_sub = as.data.frame(data_sub) # R does does weird stuff converting data frame to vector
+      colnames(data_sub) = colnames_sub
+      intervened_node_score = bnlearn::score(g_sub, data_sub, type='bge', by.node=TRUE)
+      intervened_node_score = intervened_node_score[intervened_node] # Just want score of intervened node
+      node_scores[as.numeric(intervened_node)] = intervened_node_score
     }
-    mask = interventions != intervened_node
-    data_sub = data[c(intervened_node, parents_intervened_node)]
-    colnames_sub = colnames(data_sub)
-    data_sub = data_sub[mask, ]
-    data_sub = as.data.frame(data_sub) # R does does weird stuff converting data frame to vector
-    colnames(data_sub) = colnames_sub
-    intervened_node_score = bnlearn::score(g_sub, data_sub, type='bge', by.node=TRUE)
-    intervened_node_score = intervened_node_score[intervened_node] # Just want score of intervened node
-    node_scores[as.numeric(intervened_node)] = intervened_node_score
   }
   return(sum(node_scores))
 }
@@ -155,7 +157,15 @@ minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter
       }
     }
   }
-  gie_score_fn <- new("GaussL0penIntScore", data, all_targets, as.numeric(interventions)) # BIC score
+  intervention_index = interventions
+  intervention_index[-1] = 1 # observational data is at index 1 in all_targets list
+  if(length(all_targets) > 1){
+    for(i in 2:length(all_targets)){
+      target = all_targets[[i]]
+      intervention_index[target] = i 
+    }
+  }
+  gie_score_fn <- new("GaussL0penIntScore", data, all_targets, intervention_index) # BIC score
   gies.fit <- gies(gie_score_fn)
   weights = gies.fit$repr$weight.mat()
   weights[weights != 0, ] = 1 # convert to adjacency matrix
