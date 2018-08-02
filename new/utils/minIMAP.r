@@ -142,7 +142,7 @@ random_transposition = function(perm){
 }
 
 minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter=500, save_step=100, path='../data/TEMP_DAGS/'){
-  data = as.data.frame(read.csv(data_path))
+  data = as.data.frame(read.table(data_path))
   p = ncol(data)
   colnames(data) = as.character(1:p)
   interventions = as.character(read.csv(intervention_path)[, 1])
