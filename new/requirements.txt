@@ -1,6 +1,13 @@
-matplotlib==2.1.0
+causaldag==0.1a11
+cycler==0.10.0
 dataclasses==0.6
-numpy==1.14.5
+decorator==4.3.0
+matplotlib==2.1.0
 networkx==2.0
-scipy==1.1.0
+numpy==1.14.5
+pyparsing==2.2.0
+python-dateutil==2.7.3
+pytz==2018.4
 PyYAML==3.12
+scipy==1.1.0
+six==1.11.0

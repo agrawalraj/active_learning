@@ -1,7 +1,7 @@
 import random
 
 
-def random_strategy(g, siginv, data, config):
+def random_strategy(g, data, config):
     interventions = random.sample(g.nodes, config.max_interventions)
     n = config.n_samples / (config.n_batches * config.max_interventions)
     if int(n) != n:
