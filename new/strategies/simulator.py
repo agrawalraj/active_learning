@@ -4,6 +4,7 @@ from utils import sys_utils
 from utils import graph_utils
 import numpy as np
 import os
+import causaldag as cd
 
 
 def get_dataset_folder(dataset_num):
@@ -19,6 +20,7 @@ class SimulationConfig:
     edge_prob: float
     n_dags: int
     strategy: str
+    intervention_strength: float
 
     def save(self, dataset_num):
         params = {
@@ -28,7 +30,8 @@ class SimulationConfig:
             'n_nodes': self.n_nodes,
             'edge_prob': self.edge_prob,
             'n_dags': self.n_dags,
-            'strategy': self.strategy
+            'strategy': self.strategy,
+            'intervention_strength': self.intervention_strength
         }
         filename = get_dataset_folder(dataset_num) + 'params.yaml'
         yaml.dump(params, open(filename, 'w'), indent=2, default_flow_style=False)
@@ -49,32 +52,35 @@ def simulate(strategy, config, dataset_num):
     while dag_num < config.n_dags:
         dag_num += 1
         print('=== Simulating strategy on DAG %d ===' % dag_num)
-        g = graph_utils.random_graph(config.n_nodes, config.edge_prob)
-        if len(graph_utils.get_covered_edges(g)) == 0:
-            continue
-        adj_mat = graph_utils.random_adj(g)
-        siginv = graph_utils.adj2prec(adj_mat)
+        dag = cd.rand.graphs.directed_erdos(config.n_nodes, config.edge_prob)
+        arcs = {(i, j): graph_utils.RAND_RANGE() for i, j in dag.arcs}
+        gdag = cd.GaussDAG(nodes=list(range(config.n_nodes)), arcs=arcs)
 
         graph_folder = dataset_folder + 'graph_%d/' % dag_num
         sys_utils.ensure_dir(graph_folder)
-        np.savetxt(graph_folder + 'adjacency.csv', adj_mat)
+        np.savetxt(graph_folder + 'adjacency.csv', gdag.to_amat())
 
-        all_samples = [[] for _ in range(len(g.nodes))]
+        all_samples = [[] for _ in range(config.n_nodes)]
         for batch in range(config.n_batches):
             print('Batch %d' % batch)
-            interventions, n_samples = strategy(g, siginv, all_samples, config)
-            new_samples = graph_utils.sample_graph_int(g, adj_mat, interventions, n_samples)
+            interventions, n_samples = strategy(gdag, all_samples, config)
+            new_samples = [[] for _ in range(config.n_nodes)]
+            for iv, n in zip(interventions, n_samples):
+                g_iv = cd.GaussIntervention(
+                    mean=config.intervention_strength,
+                    variance=1
+                )
+                new_samples[iv] = gdag.sample_interventional({iv: g_iv}, n)
             all_samples = graph_utils.concatenate_data(all_samples, new_samples)
 
         sys_utils.ensure_dir(graph_folder + 'samples/')
-        for i in range(len(g.nodes)):
+        for i in range(config.n_nodes):
             np.savetxt(graph_folder + 'samples/intervention=%d.csv' % i, all_samples[i])
 
 
 if __name__ == '__main__':
-    from strategies import iterated_bed, random_nodes
+    from strategies import random_nodes
     strategies = {
-        'iterated_bed': iterated_bed.iterated_bed,
         'random': random_nodes.random_strategy
     }
     strategy = 'random'
@@ -83,12 +89,12 @@ if __name__ == '__main__':
         n_batches=5,
         max_interventions=2,
         n_nodes=10,
-        edge_prob=.1,
+        edge_prob=.5,
         n_dags=100,
-        strategy=strategy
+        strategy=strategy,
+        intervention_strength=2
     )
 
-
-    simulate(strategies[strategy], config, 2)
+    simulate(strategies[strategy], config, 3)
 
 
