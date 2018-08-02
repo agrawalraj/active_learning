@@ -86,7 +86,7 @@ calc_intervention_prob = function(g, data, interventions){
   node_scores = bnlearn::score(g, data, type='bge', by.node=TRUE) # observational score
   unique_interventions = unique(interventions)
   for (i in 1:length(unique_interventions)){ # replace score if intervened on
-    if (unique_interventions[i] != -1){ # -1 is flag for observational data
+    if (unique_interventions[i] != '-1'){ # -1 is flag for observational data
       intervened_node = unique_interventions[i]
       parents_intervened_node = bnlearn::parents(g, intervened_node)
       g_sub = empty.graph(c(intervened_node, parents_intervened_node))
@@ -146,29 +146,28 @@ minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter
   p = ncol(data)
   colnames(data) = as.character(1:p)
   interventions = as.character(read.csv(intervention_path)[, 1])
-  corr_mat = cor(data[interventions == -1, ]) # -1 is flag for observational data
+  corr_mat = cor(data[interventions == '-1', ]) # -1 is flag for observational data
   all_targets = list()
   all_targets[[1]] = integer(0) # observation data marker
   possible_interventions = unique(interventions)
+  possible_interventions = possible_interventions[possible_interventions != '-1']
   if(length(possible_interventions) > 0){
     for(i in 1:length(possible_interventions)){
-      if(as.numeric(possible_interventions[i]) != -1){
-        all_targets[[i + 1]] = as.numeric(possible_interventions[i])
-      }
+      all_targets[[i + 1]] = as.numeric(possible_interventions[i])
     }
   }
-  intervention_index = interventions
-  intervention_index[-1] = 1 # observational data is at index 1 in all_targets list
+  intervention_index = as.numeric(interventions)
   if(length(all_targets) > 1){
     for(i in 2:length(all_targets)){
       target = all_targets[[i]]
-      intervention_index[target] = i 
+      intervention_index[intervention_index == target] = i 
     }
   }
-  gie_score_fn <- new("GaussL0penIntScore", data, all_targets, intervention_index) # BIC score
+  intervention_index[intervention_index == -1] = 1 # observational data is at index 1 in all_targets list
+  gie_score_fn <- new("GaussL0penIntScore", data, all_targets, as.numeric(intervention_index)) # BIC score
   gies.fit <- gies(gie_score_fn)
   weights = gies.fit$repr$weight.mat()
-  weights[weights != 0, ] = 1 # convert to adjacency matrix
+  weights[weights != 0] = 1 # convert to adjacency matrix
   pi_0 = as.character(topoSort(weights))
   n = dim(data)[1]
   p = length(pi_0)
@@ -199,14 +198,10 @@ minIMAP_MCMC = function(data_path, intervention_path, alpha=.05, gamma=1, n_iter
     }
     emp_dags[[i]] = emp_dag_prev
     scores = c(scores, p_prev)
-    print(i)
-    print('what')
-    print(save_step)
     if(i %% save_step == 0){
-      print('about data')
       index = i / save_step
+      print(paste(index, 'total DAG samples so far'))
       write.csv(amat(emp_dag_prev), paste(path, index, sep=''), row.names=FALSE)
-      print('saved data')
     }
   }
   write.csv(scores, paste(path, 'scores', sep=''), row.names=FALSE)
@@ -221,7 +216,5 @@ gamma = as.numeric(args[4])
 n_iter = as.numeric(args[5])
 save_step = as.numeric(args[6])
 path = args[7]
-print(n_iter)
-print(class(save_step))
 
 samps = minIMAP_MCMC(data_path, intervention_path, alpha, gamma, n_iter, save_step, path)
