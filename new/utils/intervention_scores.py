@@ -3,6 +3,7 @@ from utils import graph_utils
 from collections import defaultdict
 import causaldag as cd
 from typing import List
+from logger import LOGGER
 
 
 def bed_score(intervention, dags, essgraph):
@@ -38,7 +39,8 @@ def get_orient_parents_scorer(target, dags: List[cd.DAG]):
     def scorer(intervention):
         scores = []
         for dag in dags:
-            if intervention == -1: # observational
+            LOGGER.info(dag)
+            if intervention == -1:  # observational
                 icpdag = dag.cpdag()
             else:
                 icpdag = dag.interventional_cpdag([intervention])
@@ -47,6 +49,7 @@ def get_orient_parents_scorer(target, dags: List[cd.DAG]):
                 p for p in parents
                 if (p, target) in icpdag.arcs
             ]
+            LOGGER.info('parents oriented by intervention %d: %s' % (intervention, parents_oriented_by_intervention))
             score = sum(parent_shrinkage_scores[p] for p in parents_oriented_by_intervention)
             scores.append(score)
 

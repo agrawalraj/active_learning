@@ -9,6 +9,7 @@ import numpy as np
 import os
 import causaldag as cd
 from collections import defaultdict
+from logger import LOGGER
 
 
 def get_dataset_folder(dataset_num):
@@ -61,6 +62,7 @@ def simulate(strategy, config, dataset_num):
         dag = cd.rand.graphs.directed_erdos(config.n_nodes, config.edge_prob)
         arcs = {(i, j): graph_utils.RAND_RANGE() for i, j in dag.arcs}
         gdag = cd.GaussDAG(nodes=list(range(config.n_nodes)), arcs=arcs)
+        LOGGER.info('dag: %s' % dag)
 
         graph_folder = dataset_folder + 'graph_%d/' % dag_num
         sys_utils.ensure_dir(graph_folder)
@@ -87,15 +89,15 @@ def simulate(strategy, config, dataset_num):
 if __name__ == '__main__':
     from strategies import random_nodes, learn_target_parents
 
-    n_nodes = 10
+    n_nodes = 6
     strategies = {
         'random': random_nodes.random_strategy,
-        'learn-parents': learn_target_parents.create_learn_target_parents(n_nodes-1)
+        'learn-parents': learn_target_parents.create_learn_target_parents(n_nodes-3, 10000)
     }
     strategy = 'learn-parents'
     config = SimulationConfig(
         n_samples=100,
-        n_batches=5,
+        n_batches=2,
         max_interventions=2,
         n_nodes=n_nodes,
         edge_prob=.5,

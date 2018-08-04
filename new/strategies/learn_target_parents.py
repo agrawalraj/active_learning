@@ -8,6 +8,7 @@ from typing import Dict, Any
 import config
 import operator as op
 import random
+from logger import LOGGER
 
 
 DATA_PATH = os.path.join(config.DATA_FOLDER, 'samples.csv')
@@ -55,12 +56,10 @@ def create_learn_target_parents(target, n_iter=25000):
                 node: scorer(node) if node not in interventions else 0
                 for node in [-1, *range(config.n_nodes)]
             }
-            print('intervention scores', intervention_scores)
-            max_score = max(intervention_scores.itms(), key=op.itemgetter(1))[1]
+            LOGGER.info('intervention scores: %s' % intervention_scores)
+            max_score = max(intervention_scores.items(), key=op.itemgetter(1))[1]
             tied_best_ivs = [iv for iv, score in intervention_scores.items() if score == max_score]
             best_iv = random.choice(tied_best_ivs)
-            print(interventions)
-            print(best_iv)
             interventions[best_iv] = int(samples_per_iv)
 
         return interventions
