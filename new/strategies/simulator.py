@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 import yaml
+import sys
+sys.path.append('../')
+
 from utils import sys_utils
 from utils import graph_utils
 import numpy as np
