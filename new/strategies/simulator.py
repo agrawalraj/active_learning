@@ -51,7 +51,7 @@ def simulate(strategy, config, dataset_num):
     sys_utils.ensure_dir(dataset_folder)
     config.save(dataset_num)
 
-    dag_num = -1
+    dag_num = 0
     while dag_num < config.n_dags:
         dag_num += 1
         print('=== Simulating strategy on DAG %d ===' % dag_num)

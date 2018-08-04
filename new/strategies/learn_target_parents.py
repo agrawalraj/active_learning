@@ -56,7 +56,7 @@ def create_learn_target_parents(target):
                 for node in [-1, *range(config.n_nodes)]
             }
             print('intervention scores', intervention_scores)
-            max_score = max(intervention_scores.items(), key=op.itemgetter(1))[1]
+            max_score = max(intervention_scores.itms(), key=op.itemgetter(1))[1]
             tied_best_ivs = [iv for iv, score in intervention_scores.items() if score == max_score]
             best_iv = random.choice(tied_best_ivs)
             print(interventions)
