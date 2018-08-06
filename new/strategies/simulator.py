@@ -87,17 +87,18 @@ def simulate(strategy, config, dataset_num):
 
 
 if __name__ == '__main__':
-    from strategies import random_nodes, learn_target_parents
+    from strategies import random_nodes, learn_target_parents, edge_prob
 
-    n_nodes = 6
+    n_nodes = 30
     strategies = {
         'random': random_nodes.random_strategy,
-        'learn-parents': learn_target_parents.create_learn_target_parents(n_nodes-3, 10000)
+        'learn-parents': learn_target_parents.create_learn_target_parents(n_nodes-3, 25000),
+        'edge-prob': edge_prob.create_edge_prob_strategy(n_nodes-3, 5)
     }
-    strategy = 'learn-parents'
+    strategy = 'edge-prob'
     config = SimulationConfig(
         n_samples=100,
-        n_batches=2,
+        n_batches=5,
         max_interventions=2,
         n_nodes=n_nodes,
         edge_prob=.5,
@@ -107,6 +108,6 @@ if __name__ == '__main__':
         starting_samples=250
     )
 
-    simulate(strategies[strategy], config, 3)
+    simulate(strategies['edge-prob'], config, 5000)
 
 

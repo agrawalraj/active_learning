@@ -363,6 +363,22 @@ def run_min_imap(data_path, intervention_path, alpha=.05, gamma=1,
     os.system(r_command)
 
 
+def run_gies_boot(n_boot, data_path, intervention_path, path=config.TEMP_DAG_FOLDER, 
+    delete=False):
+    # delete all DAGS in TEMP FOLDER
+    if delete:
+        try:
+            shutil.rmtree(path)
+            os.mkdir(path)
+            print('All files deleted in ' + path)
+        except Exception as e:
+            os.mkdir(path)
+            print('Made TEMP DAG directory')
+    rfile = os.path.join(config.TOP_FOLDER, 'utils', 'run_gies.r')
+    r_command = 'Rscript {} {} {} {} {}'.format(rfile, n_boot, data_path, intervention_path, path)
+    os.system(r_command)
+
+
 def load_adj_mats(path=config.TEMP_DAG_FOLDER):
     adj_mats = []
     paths = os.listdir(path)
