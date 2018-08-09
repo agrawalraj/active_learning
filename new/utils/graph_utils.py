@@ -128,6 +128,12 @@ def adj2cov_int(adj_mat, intervention, omega=None):
         return a.T @ omega_int @ a
 
 
+def adj2inc(adj_mat):
+    inc_mat = adj_mat.copy()
+    inc_mat[inc_mat != 0] = 1
+    return(inc_mat)
+
+
 def prec2adj(prec, node_order):
     if not is_pos_def(prec):
         raise ValueError('precision matrix is not positive definite')
