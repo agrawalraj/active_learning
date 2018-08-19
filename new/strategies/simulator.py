@@ -106,11 +106,11 @@ if __name__ == '__main__':
     from strategies import random_nodes, learn_target_parents, edge_prob
 
     N_NODES = 50
-    DAG_FOLDER = 'small'
+    DAG_FOLDER = 'medium'
     STRATEGIES = {
         'random': random_nodes.random_strategy,
         'learn-parents': learn_target_parents.create_learn_target_parents(N_NODES - 1, 10000),
-        'edge-prob': edge_prob.create_edge_prob_strategy(N_NODES-3, 300)
+        'edge-prob': edge_prob.create_edge_prob_strategy(N_NODES-3, 10)
     }
 
     G_CONFIG = GenerationConfig(

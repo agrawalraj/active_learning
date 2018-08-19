@@ -52,7 +52,7 @@ def create_learn_target_parents(target, n_iter=25000):
                 'number of samples divided by (number of batches * max number of interventions) is not an integer')
 
         # === SAVE DATA, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
-        _write_data(iteration_data.current_samples)
+        _write_data(iteration_data.current_data)
         graph_utils.run_min_imap(DATA_PATH, INTERVENTION_PATH, n_iter=n_iter, delete=True)
         dags = _load_dags()
         scorer = scores.get_orient_parents_scorer(target, dags)
