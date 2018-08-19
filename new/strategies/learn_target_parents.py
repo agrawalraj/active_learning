@@ -4,7 +4,6 @@ import os
 from utils import graph_utils
 import pandas as pd
 import causaldag as cd
-from typing import Dict, Any
 import config
 import operator as op
 import random
@@ -16,6 +15,9 @@ INTERVENTION_PATH = os.path.join(config.DATA_FOLDER, 'interventions.csv')
 
 
 def _write_data(data):
+    """
+    Helper function to write the
+    """
     # clear current data
     open(DATA_PATH, 'w').close()
     open(INTERVENTION_PATH, 'w').close()
@@ -28,34 +30,42 @@ def _write_data(data):
     pd.Series(iv_nodes).to_csv(INTERVENTION_PATH, index=False)
 
 
-def _load_dags(nsamples):
-    dags = []
-    for i in range(nsamples):
-        amat = np.loadtxt('../data/TEMP_DAGS/%d.csv' % i)
-        dag = graph_utils.dag_from_amat(amat)
-        dags.append(dag)
-    return dags
+def _load_dags():
+    """
+    Helper function to load the DAGs generated in R
+    """
+    adj_mats = []
+    paths = os.listdir(config.TEMP_DAG_FOLDER)
+    for file_path in paths:
+        if 'score' not in file_path and '.DS_Store' not in file_path:
+            adj_mat = pd.read_csv(os.path.join(config.TEMP_DAG_FOLDER, file_path))
+            adj_mats.append(adj_mat.as_matrix())
+    return [cd.from_amat(adj) for adj in adj_mats]
 
 
 def create_learn_target_parents(target, n_iter=25000):
-    def learn_target_parents(g, data: Dict[Any, np.array], config, batch_num):
-        _write_data(data)
-        graph_utils.run_min_imap(DATA_PATH, INTERVENTION_PATH, n_iter=n_iter, delete=True)
-        adj_mats = graph_utils.load_adj_mats()
-        dags = [cd.from_amat(adj) for adj in adj_mats]
-        scorer = scores.get_orient_parents_scorer(target, dags)
-
-        samples_per_iv = config.n_samples / (config.n_batches * config.max_interventions)
+    def learn_target_parents(iteration_data):
+        # === CALCULATE NUMBER OF SAMPLES IN EACH INTERVENTION
+        samples_per_iv = iteration_data.n_samples / (iteration_data.n_batches * iteration_data.max_interventions)
         if int(samples_per_iv) != samples_per_iv:
             raise ValueError(
                 'number of samples divided by (number of batches * max number of interventions) is not an integer')
 
+        # === SAVE DATA, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
+        _write_data(iteration_data.current_samples)
+        graph_utils.run_min_imap(DATA_PATH, INTERVENTION_PATH, n_iter=n_iter, delete=True)
+        dags = _load_dags()
+        scorer = scores.get_orient_parents_scorer(target, dags)
+
+        # === GREEDILY SELECT INTERVENTIONS
         interventions = {}
-        for k in range(config.max_interventions):
-            intervention_scores = {
-                node: scorer(node) if node not in interventions else 0
-                for node in [-1, *range(config.n_nodes)]
-            }
+        for k in range(iteration_data.max_interventions):
+            intervention_scores = {}
+            for iv in iteration_data.intervention_set:
+                if iv in interventions or iv == target:
+                    pass
+                else:
+                    intervention_scores[iv] = scorer(iv)
             LOGGER.info('intervention scores: %s' % intervention_scores)
             max_score = max(intervention_scores.items(), key=op.itemgetter(1))[1]
             tied_best_ivs = [iv for iv, score in intervention_scores.items() if score == max_score]

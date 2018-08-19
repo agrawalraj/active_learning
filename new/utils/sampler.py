@@ -4,6 +4,7 @@ from utils.graph_utils import *
 import numpy as np
 import networkx as nx
 
+
 def sample_dags(g0, siginv, data, burn_in=100, thin_factor=20, iterations=1000):
     g_curr = g0.copy()
     cov_edges_curr = list(get_covered_edges(g_curr))
