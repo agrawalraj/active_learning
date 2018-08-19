@@ -103,13 +103,14 @@ def simulate(strategy, simulator_config, gdag, dag_folder):
 
 
 if __name__ == '__main__':
-    from strategies import random_nodes, learn_target_parents
+    from strategies import random_nodes, learn_target_parents, edge_prob
 
-    N_NODES = 6
+    N_NODES = 50
     DAG_FOLDER = 'small'
     STRATEGIES = {
         'random': random_nodes.random_strategy,
-        'learn-parents': learn_target_parents.create_learn_target_parents(N_NODES - 1, 10000)
+        'learn-parents': learn_target_parents.create_learn_target_parents(N_NODES - 1, 10000),
+        'edge-prob': edge_prob.create_edge_prob_strategy(N_NODES-3, 300)
     }
 
     G_CONFIG = GenerationConfig(
@@ -119,11 +120,11 @@ if __name__ == '__main__':
     )
     gdags = G_CONFIG.save_dags(DAG_FOLDER)
 
-    STRATEGY = 'learn-parents'
+    STRATEGY = 'edge-prob'
     SIM_CONFIG = SimulationConfig(
         starting_samples=250,
         n_samples=100,
-        n_batches=2,
+        n_batches=5,
         max_interventions=2,
         strategy=STRATEGY,
         intervention_strength=2,
@@ -131,3 +132,4 @@ if __name__ == '__main__':
 
     for i, gdag in enumerate(gdags):
         simulate(STRATEGIES[STRATEGY], SIM_CONFIG, gdag, os.path.join(DATA_FOLDER, DAG_FOLDER, 'dag%d' % i))
+

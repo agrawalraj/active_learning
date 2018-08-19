@@ -107,6 +107,12 @@ def adj2cov_int(adj_mat, intervention, omega=None):
         return a.T @ omega_int @ a
 
 
+def adj2inc(adj_mat):
+    inc_mat = adj_mat.copy()
+    inc_mat[inc_mat != 0] = 1
+    return(inc_mat)
+
+
 def prec2adj(prec, node_order):
     if not is_pos_def(prec):
         raise ValueError('precision matrix is not positive definite')
@@ -199,5 +205,18 @@ def run_min_imap(data_path, intervention_path, alpha=.05, gamma=1,
     os.system(r_command)
 
 
-
+def run_gies_boot(n_boot, data_path, intervention_path, path=config.TEMP_DAG_FOLDER,
+    delete=False):
+    # delete all DAGS in TEMP FOLDER
+    if delete:
+        try:
+            shutil.rmtree(path)
+            os.mkdir(path)
+            print('All files deleted in ' + path)
+        except Exception as e:
+            os.mkdir(path)
+            print('Made TEMP DAG directory')
+    rfile = os.path.join(config.TOP_FOLDER, 'utils', 'run_gies.r')
+    r_command = 'Rscript {} {} {} {} {}'.format(rfile, n_boot, data_path, intervention_path, path)
+    os.system(r_command)
 
