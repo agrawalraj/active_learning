@@ -1,55 +1,62 @@
 import numpy as np
+import causaldag as cd
+
 from utils import graph_utils
 from collections import defaultdict
-import causaldag as cd
 from typing import List
 from logger import LOGGER
+from causaldag import BinaryIntervention, ConstantIntervention
 
 
-from causaldag import BinaryIntervention
-
-
-def get_var_mat(adj_mat, iv_strengths, n_monte_carlo=1000):
+def node_iv_var_mat(adj_mat, node_vars, iv_strengths, n_monte_carlo=1000):
     p = adj_mat.shape[0]
-    gdag = GaussDAG.from_weight_matrix(adj_mat)
+    gdag = cd.GaussDAG.from_weight_matrix(adj_mat)
     var_mat = np.zeros((p, p))
     ivs = []
     for i, iv_strength in enumerate(iv_strengths):
-        ivs.append(BinaryIntervention(iv_strength, -iv_strength))
+        print('FIXXXXXX THISSS')
+        # ivs.append(BinaryIntervention(iv_strength, -iv_strength))
+        ivs.append(ConstantIntervention(iv_strength))
     for iv in range(p):
-        iv_fn = ivs[i]
+        iv_fn = ivs[iv]
         iv_samps = gdag.sample_interventional({iv: iv_fn.sample}, n_monte_carlo)
-        var_mat[iv, :] = np.var(iv_samps, axis=0)
-    return(var_mat)
+        var_mat[iv, :] = np.multiply(np.var(iv_samps, axis=0), 1 / node_vars)
+    return var_mat
 
 
 def get_orient_mask(target, adj_mat):
     mask = np.zeros(adj_mat.shape)
     parents_mask = adj_mat[:, target]
     parents_mask = parents_mask != 0
+    dag = cd.DAG.from_amat(adj_mat)
+    cpdag = dag.cpdag() 
     for parent, parent_mask in enumerate(parents_mask):
         for iv in range(adj_mat.shape[0]):
             if parent_mask != False:
-                if iv orients parent:
+                icpdag = dag.interventional_cpdag([iv], cpdag=cpdag)
+                oriented_parents = [p for p in dag.parents[target] if (p, target) in (icpdag.arcs - cpdag.arcs)]
+                if iv in oriented_parents:
                     mask[parent, iv] = 1
     return mask
 
 
-def var_score_mat(target, adj_mats, iv_strengths):
+def var_score_mat(target, adj_mats, node_vars, iv_strengths):
+    node_vars = np.array(node_vars) # Make sure right type
+    iv_strengths = np.array(iv_strengths)
     p = adj_mats[0].shape[0]
     iv_scores = np.zeros((p, p))
-    N_adj_mats = len(adj_mats)
+    num_adj_mats = len(adj_mats)
     for adj_mat in adj_mats:
-        parent_orient_mask = get_orient_mask(target, adj_mats)
-        var_mat = get_var_mat(adj_mat, iv_strengths)
+        parent_orient_mask = get_orient_mask(target, adj_mat)
+        var_mat = node_iv_var_mat(adj_mat, node_vars, iv_strengths)
         orient_var_mat = np.multiply(var_mat, parent_orient_mask)
-        iv_scores += orient_var_mat / N_adj_mats
-    return(iv_scores)
+        iv_scores += orient_var_mat / num_adj_mats
+    return iv_scores
 
 
-def create_var_score_fn(parent_shrinkage_scores, target, adj_mats, iv_strengths):
+def create_var_score_fn(parent_shrinkage_scores, target, adj_mats, node_vars, iv_strengths):
     p = adj_mats[0].shape[0]
-    iv_scores = var_score_mat(target, adj_mats, iv_strengths)
+    iv_scores = var_score_mat(target, adj_mats, node_vars, iv_strengths)
     for node in range(p): # Don't include target node
         if node != target:
             iv_scores[node, :] = iv_scores[node, :] * parent_shrinkage_scores[node]
@@ -58,7 +65,7 @@ def create_var_score_fn(parent_shrinkage_scores, target, adj_mats, iv_strengths)
     return var_score_fn
 
 
-def greedy_select(int_score_fn, K):
+def greedy_iv(int_score_fn, int_set, K):
     pass
 
 
@@ -90,7 +97,7 @@ def create_variance_strategy(target, iv_strengths, n_boot=100):
         print(parent_probs)
         parent_shrinkage_scores = {p: graph_utils.probability_shrinkage(prob) for p, prob in parent_probs.items()}
         var_score_fn = create_var_score_fn(parent_shrinkage_scores, target, adj_mats, iv_strengths)
-        interventions = greedy_select(var_score_fn, iteration_data.max_interventions)
+        interventions = greedy_iv(var_score_fn, iteration_data.max_interventions)
         return interventions
     return variance_strategy
 
