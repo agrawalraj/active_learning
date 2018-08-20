@@ -93,7 +93,7 @@ if __name__ == '__main__':
     strategies = {
         'random': random_nodes.random_strategy,
         'learn-parents': learn_target_parents.create_learn_target_parents(n_nodes-3, 25000),
-        'edge-prob': edge_prob.create_edge_prob_strategy(n_nodes-3, 300)
+        'edge-prob': edge_prob.create_edge_prob_strategy(n_nodes-10, 300)
     }
     strategy = 'edge-prob'
     config = SimulationConfig(
@@ -102,12 +102,12 @@ if __name__ == '__main__':
         max_interventions=2,
         n_nodes=n_nodes,
         edge_prob=.5,
-        n_dags=1,
+        n_dags=5,
         strategy=strategy,
         intervention_strength=2,
         starting_samples=250
     )
 
-    simulate(strategies['edge-prob'], config, 5000)
+    simulate(strategies['edge-prob'], config, 5001)
 
 

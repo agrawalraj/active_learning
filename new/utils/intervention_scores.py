@@ -35,7 +35,7 @@ def get_orient_parents_scorer(target, dags: List[cd.DAG]):
             parent_counts[p] += 1
     parent_probs = {p: c/len(dags) for p, c in parent_counts.items()}
     parent_shrinkage_scores = {p: probability_shrinkage(prob) for p, prob in parent_probs.items()}
-
+    print(parent_probs)
     def scorer(intervention):
         scores = []
         for dag in dags:
