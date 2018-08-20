@@ -9,6 +9,8 @@ from scipy.stats import multivariate_normal
 from scipy.linalg import ldl
 import operator as op
 import config
+import pandas as pd
+import causaldag as cd
 
 
 def is_pos_def(x):
@@ -205,8 +207,7 @@ def run_min_imap(data_path, intervention_path, alpha=.05, gamma=1,
     os.system(r_command)
 
 
-def run_gies_boot(n_boot, data_path, intervention_path, path=config.TEMP_DAG_FOLDER,
-    delete=False):
+def run_gies_boot(n_boot, data_path, intervention_path, path=config.TEMP_DAG_FOLDER, delete=False):
     # delete all DAGS in TEMP FOLDER
     if delete:
         try:
@@ -220,3 +221,31 @@ def run_gies_boot(n_boot, data_path, intervention_path, path=config.TEMP_DAG_FOL
     r_command = 'Rscript {} {} {} {} {}'.format(rfile, n_boot, data_path, intervention_path, path)
     os.system(r_command)
 
+
+def _write_data(data):
+    """
+    Helper function to write interventional data to files so that it can be used by R
+    """
+    # clear current data
+    open(config.TEMP_SAMPLES_PATH, 'w').close()
+    open(config.TEMP_INTERVENTIONS_PATH, 'w').close()
+
+    iv_nodes = []
+    for iv_node, samples in data.items():
+        with open(config.TEMP_SAMPLES_PATH, 'ab') as f:
+            np.savetxt(f, samples)
+        iv_nodes.extend([iv_node+1 if iv_node != -1 else -1]*len(samples))
+    pd.Series(iv_nodes).to_csv(config.TEMP_INTERVENTIONS_PATH, index=False)
+
+
+def _load_dags():
+    """
+    Helper function to load the DAGs generated in R
+    """
+    adj_mats = []
+    paths = os.listdir(config.TEMP_DAG_FOLDER)
+    for file_path in paths:
+        if 'score' not in file_path and '.DS_Store' not in file_path:
+            adj_mat = pd.read_csv(os.path.join(config.TEMP_DAG_FOLDER, file_path))
+            adj_mats.append(adj_mat.as_matrix())
+    return [cd.DAG.from_amat(adj) for adj in adj_mats]

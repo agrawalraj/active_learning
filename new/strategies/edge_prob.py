@@ -1,41 +1,8 @@
 import random
 from collections import defaultdict
 import operator as op
-import numpy as np
-import os
 from utils import graph_utils
-import pandas as pd
-import causaldag as cd
 import config
-
-DATA_PATH = os.path.join(config.DATA_FOLDER, 'samples.csv')
-INTERVENTION_PATH = os.path.join(config.DATA_FOLDER, 'interventions.csv')
-
-
-def _write_data(data):
-    # clear current data
-    open(DATA_PATH, 'w').close()
-    open(INTERVENTION_PATH, 'w').close()
-
-    iv_nodes = []
-    for iv_node, samples in data.items():
-        with open(DATA_PATH, 'ab') as f:
-            np.savetxt(f, samples)
-        iv_nodes.extend([iv_node+1 if iv_node != -1 else -1]*len(samples))
-    pd.Series(iv_nodes).to_csv(INTERVENTION_PATH, index=False)
-
-
-def _load_dags():
-    """
-    Helper function to load the DAGs generated in R
-    """
-    adj_mats = []
-    paths = os.listdir(config.TEMP_DAG_FOLDER)
-    for file_path in paths:
-        if 'score' not in file_path and '.DS_Store' not in file_path:
-            adj_mat = pd.read_csv(os.path.join(config.TEMP_DAG_FOLDER, file_path))
-            adj_mats.append(adj_mat.as_matrix())
-    return [cd.from_amat(adj) for adj in adj_mats]
 
 
 def probability_shrinkage(prob):
@@ -50,9 +17,12 @@ def create_edge_prob_strategy(target, n_boot):
             raise ValueError('n_samples / (n_batches * max interventions) must be an integer')
 
         # === SAVE DATA, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
-        _write_data(iteration_data.current_data)
-        graph_utils.run_gies_boot(n_boot, DATA_PATH, INTERVENTION_PATH, delete=True)
-        dags = _load_dags()
+        print('intervened nodes:', iteration_data.current_data.keys())
+        graph_utils._write_data(iteration_data.current_data)
+        graph_utils.run_gies_boot(n_boot, config.TEMP_SAMPLES_PATH, config.TEMP_INTERVENTIONS_PATH, delete=True)
+        dags = graph_utils._load_dags()
+        if len(dags) != n_boot:
+            raise RuntimeError('Correct number of DAGs not saved, check R code')
 
         parent_counts = defaultdict(int)
         node_set = dags[0].nodes
