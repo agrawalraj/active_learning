@@ -5,9 +5,10 @@ import random
 from logger import LOGGER
 from collections import defaultdict
 import numpy as np
+import os
 
 
-def create_learn_target_parents(target, n_iter=25000):
+def create_learn_target_parents(target, n_boot=100):
 
     def learn_target_parents(iteration_data):
         # === CALCULATE NUMBER OF SAMPLES IN EACH INTERVENTION
@@ -18,8 +19,16 @@ def create_learn_target_parents(target, n_iter=25000):
 
         # === SAVE DATA, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
         graph_utils._write_data(iteration_data.current_data)
-        graph_utils.run_min_imap(config.TEMP_SAMPLES_PATH, config.TEMP_INTERVENTIONS_PATH, n_iter=n_iter, delete=True)
+        graph_utils.run_gies_boot(n_boot, config.TEMP_SAMPLES_PATH, config.TEMP_INTERVENTIONS_PATH, delete=True)
         dags = graph_utils._load_dags()
+        if len(dags) != n_boot:
+            raise RuntimeError('Correct number of DAGs not saved, check R code')
+
+        # === SAVE SAMPLED DAGS FROM R FOR FUTURE REFERENCE
+        for d, dag in enumerate(dags):
+            amat = dag.to_amat()
+            filename = os.path.join(iteration_data.strategy_folder, 'batch%d' % iteration_data.batch_num, 'dag%d.npy' % d)
+            np.save(filename, amat)
 
         # === GET CPDAG AND PARENTS OF EACH DAG TO USE IN CALCULATING SCORE
         cpdags = [dag.cpdag() for dag in dags]

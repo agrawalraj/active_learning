@@ -3,10 +3,8 @@ from collections import defaultdict
 import operator as op
 from utils import graph_utils
 import config
-
-
-def probability_shrinkage(prob):
-    return 2 * min(1 - prob, prob)
+import os
+import numpy as np
 
 
 def create_edge_prob_strategy(target, n_boot):
@@ -21,19 +19,24 @@ def create_edge_prob_strategy(target, n_boot):
         graph_utils._write_data(iteration_data.current_data)
         graph_utils.run_gies_boot(n_boot, config.TEMP_SAMPLES_PATH, config.TEMP_INTERVENTIONS_PATH, delete=True)
         dags = graph_utils._load_dags()
+        dag_target_parents = [dag.parents[target] for dag in dags]
         if len(dags) != n_boot:
             raise RuntimeError('Correct number of DAGs not saved, check R code')
 
+        # === SAVE SAMPLED DAGS FROM R FOR FUTURE REFERENCE
+        for d, dag in enumerate(dags):
+            amat = dag.to_amat()
+            filename = os.path.join(iteration_data.strategy_folder, 'batch%d' % iteration_data.batch_num,
+                                    'dag%d.npy' % d)
+            np.save(filename, amat)
+
         parent_counts = defaultdict(int)
-        node_set = dags[0].nodes
-        for node in node_set:
-            parent_counts[node] = 0
-        for dag in dags:
-            for p in dag.parents[target]:
+        for dag, target_parents in zip(dags, dag_target_parents):
+            for p in target_parents:
                 parent_counts[p] += 1
         parent_probs = {p: c/len(dags) for p, c in parent_counts.items()}
         print(parent_probs)
-        parent_shrinkage_scores = {p: probability_shrinkage(prob) for p, prob in parent_probs.items()}
+        parent_shrinkage_scores = {p: graph_utils.probability_shrinkage(prob) for p, prob in parent_probs.items()}
 
         # === GREEDILY SELECT INTERVENTIONS
         interventions = {}
