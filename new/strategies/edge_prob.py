@@ -18,19 +18,16 @@ def create_edge_prob_strategy(target, n_boot):
         print('intervened nodes:', iteration_data.current_data.keys())
         graph_utils._write_data(iteration_data.current_data)
         graph_utils.run_gies_boot(n_boot, config.TEMP_SAMPLES_PATH, config.TEMP_INTERVENTIONS_PATH, delete=True)
-        dags = graph_utils._load_dags()
+        amats, dags = graph_utils._load_dags()
         dag_target_parents = [dag.parents[target] for dag in dags]
         if len(dags) != n_boot:
             raise RuntimeError('Correct number of DAGs not saved, check R code')
 
         # === SAVE SAMPLED DAGS FROM R FOR FUTURE REFERENCE
-        for d, dag in enumerate(dags):
-            amat = dag.to_amat()
-            filename = os.path.join(iteration_data.strategy_folder, 'batch%d' % iteration_data.batch_num,
-                                    'dag%d.npy' % d)
-            np.save(filename, amat)
+        for d, amat in enumerate(amats):
+            np.save(os.path.join(iteration_data.batch_folder, 'dag%d.npy' % d), amat)
 
-        parent_counts = defaultdict(int)
+        parent_counts = {node: 0 for node in dags[0].nodes}
         for dag, target_parents in zip(dags, dag_target_parents):
             for p in target_parents:
                 parent_counts[p] += 1

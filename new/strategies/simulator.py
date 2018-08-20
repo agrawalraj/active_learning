@@ -57,7 +57,7 @@ class IterationData:
     n_batches: int
     intervention_set: list
     interventions: list
-    strategy_folder: str
+    batch_folder: str
 
 
 def simulate(strategy, simulator_config, gdag, strategy_folder):
@@ -84,6 +84,8 @@ def simulate(strategy, simulator_config, gdag, strategy_folder):
     # === RUN STRATEGY ON EACH BATCH
     for batch in range(simulator_config.n_batches):
         print('Batch %d' % batch)
+        batch_folder = os.path.join(strategy_folder, 'batch=%d/' % batch)
+        os.makedirs(batch_folder, exist_ok=True)
         iteration_data = IterationData(
             current_data=all_samples,
             max_interventions=simulator_config.max_interventions,
@@ -92,7 +94,7 @@ def simulate(strategy, simulator_config, gdag, strategy_folder):
             n_batches=simulator_config.n_batches,
             intervention_set=gdag.nodes,
             interventions=interventions,
-            strategy_folder=strategy_folder
+            batch_folder=batch_folder
         )
         recommended_interventions = strategy(iteration_data)
         for iv_node, nsamples in recommended_interventions.items():

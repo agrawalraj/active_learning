@@ -74,7 +74,8 @@ def _load_dags():
         if 'score' not in file_path and '.DS_Store' not in file_path:
             adj_mat = pd.read_csv(os.path.join(config.TEMP_DAG_FOLDER, file_path))
             adj_mats.append(adj_mat.as_matrix())
-    return [cd.DAG.from_amat(adj) for adj in adj_mats]
+    return adj_mats, [cd.DAG.from_amat(adj) for adj in adj_mats]
+
 
 def probability_shrinkage(prob):
     return 2 * min(1 - prob, prob)

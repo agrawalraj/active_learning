@@ -26,17 +26,16 @@ def check_gies(dag_folder, strategy, target):
     # === SAVE SAMPLES, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
     graph_utils._write_data(samples)
     graph_utils.run_gies_boot(10, config.TEMP_SAMPLES_PATH, config.TEMP_INTERVENTIONS_PATH, delete=True)
-    dags = graph_utils._load_dags()
+    amats, dags = graph_utils._load_dags()
+    dag_target_parents = [dag.parents[target] for dag in dags]
     if len(dags) != 10:
         raise RuntimeError('Correct number of DAGs not saved, check R code')
+    print(len(dags))
 
     # === CHECK PARENT PROBABILITIES
-    parent_counts = defaultdict(int)
-    node_set = dags[0].nodes
-    for node in node_set:
-        parent_counts[node] = 0
-    for dag in dags:
-        for p in dag.parents[target]:
+    parent_counts = {node: 0 for node in dags[0].nodes}
+    for dag, target_parents in zip(dags, dag_target_parents):
+        for p in target_parents:
             parent_counts[p] += 1
     parent_probs = {p: c / len(dags) for p, c in parent_counts.items()}
 
