@@ -73,7 +73,7 @@ def simulate(strategy, simulator_config, gdag, strategy_folder):
     all_samples = {i: np.zeros([0, n_nodes]) for i in range(n_nodes)}
     all_samples[-1] = gdag.sample(simulator_config.starting_samples)
 
-    # === CALCULATE INTERVENTIONS
+    # === SPECIFY INTERVENTIONAL DISTRIBUTIONS BASED ON EACH NODE'S STANDARD DEVIATION
     interventions = [
         cd.BinaryIntervention(
             intervention1=cd.ConstantIntervention(val=-simulator_config.intervention_strength*std).sample,

@@ -61,6 +61,7 @@ def _write_data(data):
         with open(config.TEMP_SAMPLES_PATH, 'ab') as f:
             np.savetxt(f, samples)
         iv_nodes.extend([iv_node+1 if iv_node != -1 else -1]*len(samples))
+    print(iv_nodes)
     pd.Series(iv_nodes).to_csv(config.TEMP_INTERVENTIONS_PATH, index=False)
 
 

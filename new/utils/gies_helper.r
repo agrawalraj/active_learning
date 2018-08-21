@@ -30,6 +30,7 @@ bootstrap_gies = function(n_boot, data, interventions, path='../data/TEMP_DAGS/'
   for(i in 1:n_boot){
     print(paste('Bootstrap GIES Sample', i))
     boot_indcs = bootstrap_indcs(interventions)
+    print(boot_indcs)
     W = run_gies(data[boot_indcs, ], interventions[boot_indcs])
     colnames(W) = as.character(1:p)
     adj_mats[[i]] = W
@@ -52,19 +53,25 @@ bootstrap_indcs = function(interventions){
 
 run_gies = function(data, interventions){
   data = as.data.frame(data)
+  print('-3')
   p = ncol(data)
   colnames(data) = as.character(1:p)
+  print('-2')
   interventions = as.character(interventions)
   corr_mat = cor(data[interventions == '-1', ]) # -1 is flag for observational data
+  print('-1')
   all_targets = list()
   all_targets[[1]] = integer(0) # observation data marker
+  print('0')
   possible_interventions = unique(interventions)
   possible_interventions = possible_interventions[possible_interventions != '-1']
+  print('1')
   if(length(possible_interventions) > 0){
     for(i in 1:length(possible_interventions)){
       all_targets[[i + 1]] = as.numeric(possible_interventions[i])
     }
   }
+  print('2')
   intervention_index = as.numeric(interventions)
   if(length(all_targets) > 1){
     for(i in 2:length(all_targets)){
@@ -72,8 +79,11 @@ run_gies = function(data, interventions){
       intervention_index[intervention_index == target] = i 
     }
   }
+  print('3')
   intervention_index[intervention_index == -1] = 1 # observational data is at index 1 in all_targets list
+  print('4')
   gie_score_fn <- new("GaussL0penIntScore", data, all_targets, as.numeric(intervention_index)) # BIC score
+  print('5')
   gies.fit <- gies(gie_score_fn)
   weights = gies.fit$repr$weight.mat()
   return(weights)

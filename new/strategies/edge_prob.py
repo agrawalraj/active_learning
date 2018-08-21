@@ -15,7 +15,7 @@ def create_edge_prob_strategy(target, n_boot):
             raise ValueError('n_samples / (n_batches * max interventions) must be an integer')
 
         # === SAVE DATA, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
-        print('intervened nodes:', iteration_data.current_data.keys())
+        print('interventions per node:', {iv: data.shape[0] for iv, data in iteration_data.current_data.items()})
         graph_utils._write_data(iteration_data.current_data)
         graph_utils.run_gies_boot(n_boot, config.TEMP_SAMPLES_PATH, config.TEMP_INTERVENTIONS_PATH, delete=True)
         amats, dags = graph_utils._load_dags()
