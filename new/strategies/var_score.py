@@ -1,5 +1,9 @@
 import numpy as np
 import causaldag as cd
+import operator as op
+import random
+import config
+import os
 
 from utils import graph_utils
 from collections import defaultdict
@@ -64,15 +68,22 @@ def create_var_score_fn(parent_shrinkage_scores, target, adj_mats, node_vars, iv
     return var_score_fn
 
 
-def greedy_iv(int_score_fn, int_set, K):
-    pass
-    # int_score_fn - function that returns float from list of interventions
-    # int_set - list of possible interventions
-    # K - max number of interventions 
-    # returns - K top scoring interventions by maximizing int_score_fn
+def greedy_iv(int_score_fn, iv_family, K):
+    interventions = set()
+    while len(interventions) < K: 
+        iv_scores = {}
+        for iv in iv_family.difference(interventions):
+            prev_plus_cur_iv = interventions.copy()
+            prev_plus_cur_iv.add(iv)
+            iv_scores[iv] = int_score_fn(list(prev_plus_cur_iv))
+        max_score = max(iv_scores.items(), key=op.itemgetter(1))[1]
+        tied_best_ivs = [iv for iv, score in iv_scores.items() if score == max_score]
+        best_iv = random.choice(tied_best_ivs)
+        interventions.add(best_iv)
+    return list(interventions)
 
 
-def create_variance_strategy(target, iv_strengths, n_boot=100):
+def create_variance_strategy(target, node_vars, iv_strengths, n_boot=100):
     def variance_strategy(iteration_data):
         # === CALCULATE NUMBER OF SAMPLES IN EACH INTERVENTION
         n = iteration_data.n_samples / (iteration_data.n_batches * iteration_data.max_interventions)
@@ -99,11 +110,15 @@ def create_variance_strategy(target, iv_strengths, n_boot=100):
         parent_probs = {p: c/len(dags) for p, c in parent_counts.items()}
         print(parent_probs)
         parent_shrinkage_scores = {p: graph_utils.probability_shrinkage(prob) for p, prob in parent_probs.items()}
-        var_score_fn = create_var_score_fn(parent_shrinkage_scores, target, adj_mats, iv_strengths)
+        var_score_fn = create_var_score_fn(parent_shrinkage_scores, target, adj_mats, node_vars, iv_strengths)
         p = amats[0].shape[0]
-        int_set = [i for i in range(p) if p != target]
-        interventions = greedy_iv(var_score_fn, int_set, iteration_data.max_interventions)
-        return interventions
+        iv_family = set()
+        [iv_family.add(iv) for iv in range(p) if iv != target]
+        interventions = greedy_iv(var_score_fn, iv_family, iteration_data.max_interventions)
+        selected_interventions = {}
+        for iv in interventions:
+            selected_interventions[iv] = int(n)
+        return selected_interventions
     return variance_strategy
 
 
