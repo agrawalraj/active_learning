@@ -23,7 +23,7 @@ class GenerationConfig:
     def save_dags(self, folder):
         os.makedirs(folder, exist_ok=True)
         yaml.dump(asdict(self), open(os.path.join(folder, 'config.yaml'), 'w'))
-        dags = cd.rand.graphs.directed_erdos(self.n_nodes, self.edge_prob, size=self.n_dags)
+        dags = cd.rand.directed_erdos(self.n_nodes, self.edge_prob, size=self.n_dags)
         dag_arcs = [{(i, j): graph_utils.RAND_RANGE() for i, j in dag.arcs} for dag in dags]
         gdags = [cd.GaussDAG(nodes=list(range(self.n_nodes)), arcs=arcs) for arcs in dag_arcs]
 
@@ -60,9 +60,8 @@ class IterationData:
     batch_folder: str
 
 
-def simulate(strategy, simulator_config, gdag, strategy_folder):
+def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_dags_final):
     samples_folder = os.path.join(strategy_folder, 'samples')
-    print(samples_folder)
 
     # === SAVE SIMULATION META-INFORMATION
     os.makedirs(samples_folder, exist_ok=True)
@@ -104,10 +103,4 @@ def simulate(strategy, simulator_config, gdag, strategy_folder):
 
     for i, samples in all_samples.items():
         np.savetxt(os.path.join(samples_folder, 'intervention=%d.csv' % i), samples)
-
-
-if __name__ == '__main__':
-    from strategies import random_nodes, learn_target_parents, edge_prob
-
-
 
