@@ -14,11 +14,15 @@ def create_edge_prob_strategy(target, n_boot):
         if int(n) != n:
             raise ValueError('n_samples / (n_batches * max interventions) must be an integer')
 
+        # === DEFINE PATHS FOR FILES WHICH WILL HOLD THE TEMPORARY DATA
+        samples_path = os.path.join(iteration_data.batch_folder, 'samples.csv')
+        interventions_path = os.path.join(iteration_data.batch_folder, 'interventions.csv')
+        dags_path = os.path.join(iteration_data.batch_folder, 'TEMP_DAGS')
+
         # === SAVE DATA, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
-        print('interventions per node:', {iv: data.shape[0] for iv, data in iteration_data.current_data.items()})
-        graph_utils._write_data(iteration_data.current_data)
-        graph_utils.run_gies_boot(n_boot, config.TEMP_SAMPLES_PATH, config.TEMP_INTERVENTIONS_PATH, delete=True)
-        amats, dags = graph_utils._load_dags()
+        graph_utils._write_data(iteration_data.current_data, samples_path, interventions_path)
+        graph_utils.run_gies_boot(n_boot, samples_path, interventions_path, dags_path, delete=True)
+        amats, dags = graph_utils._load_dags(dags_path)
         dag_target_parents = [dag.parents[target] for dag in dags]
         if len(dags) != n_boot:
             raise RuntimeError('Correct number of DAGs not saved, check R code')
@@ -32,7 +36,6 @@ def create_edge_prob_strategy(target, n_boot):
             for p in target_parents:
                 parent_counts[p] += 1
         parent_probs = {p: c/len(dags) for p, c in parent_counts.items()}
-        print(parent_probs)
         parent_shrinkage_scores = {p: graph_utils.probability_shrinkage(prob) for p, prob in parent_probs.items()}
 
         # === GREEDILY SELECT INTERVENTIONS

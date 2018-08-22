@@ -17,10 +17,15 @@ def create_learn_target_parents(target, n_boot=100):
             raise ValueError(
                 'number of samples divided by (number of batches * max number of interventions) is not an integer')
 
+        # === DEFINE PATHS FOR FILES WHICH WILL HOLD THE TEMPORARY DATA
+        samples_path = os.path.join(iteration_data.batch_folder, 'samples.csv')
+        interventions_path = os.path.join(iteration_data.batch_folder, 'interventions.csv')
+        dags_path = os.path.join(iteration_data.batch_folder, 'TEMP_DAGS')
+
         # === SAVE DATA, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
-        graph_utils._write_data(iteration_data.current_data)
-        graph_utils.run_gies_boot(n_boot, config.TEMP_SAMPLES_PATH, config.TEMP_INTERVENTIONS_PATH, delete=True)
-        amats, dags = graph_utils._load_dags()
+        graph_utils._write_data(iteration_data.current_data, samples_path, interventions_path)
+        graph_utils.run_gies_boot(n_boot, samples_path, interventions_path, dags_path, delete=True)
+        amats, dags = graph_utils._load_dags(dags_path)
         if len(dags) != n_boot:
             raise RuntimeError('Correct number of DAGs not saved, check R code')
 

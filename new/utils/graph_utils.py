@@ -33,46 +33,46 @@ def run_min_imap(data_path, intervention_path, alpha=.05, gamma=1,
     os.system(r_command)
 
 
-def run_gies_boot(n_boot, data_path, intervention_path, path=config.TEMP_DAG_FOLDER, delete=False):
+def run_gies_boot(n_boot, data_path, intervention_path, dags_path, delete=False):
     # delete all DAGS in TEMP FOLDER
     if delete:
         try:
-            shutil.rmtree(path)
-            os.mkdir(path)
-            print('All files deleted in ' + path)
+            shutil.rmtree(dags_path)
+            os.mkdir(dags_path)
+            print('All DAGs deleted in ' + dags_path)
         except Exception as e:
-            os.mkdir(path)
+            os.mkdir(dags_path)
             print('Made TEMP DAG directory')
     rfile = os.path.join(config.TOP_FOLDER, 'utils', 'run_gies.r')
-    r_command = 'Rscript {} {} {} {} {}'.format(rfile, n_boot, data_path, intervention_path, path)
+    r_command = 'Rscript {} {} {} {} {}'.format(rfile, n_boot, data_path, intervention_path, dags_path)
     os.system(r_command)
 
 
-def _write_data(data):
+def _write_data(data, samples_path, interventions_path):
     """
     Helper function to write interventional data to files so that it can be used by R
     """
     # clear current data
-    open(config.TEMP_SAMPLES_PATH, 'w').close()
-    open(config.TEMP_INTERVENTIONS_PATH, 'w').close()
+    open(samples_path, 'w').close()
+    open(interventions_path, 'w').close()
 
     iv_nodes = []
     for iv_node, samples in data.items():
-        with open(config.TEMP_SAMPLES_PATH, 'ab') as f:
+        with open(samples_path, 'ab') as f:
             np.savetxt(f, samples)
         iv_nodes.extend([iv_node+1 if iv_node != -1 else -1]*len(samples))
-    pd.Series(iv_nodes).to_csv(config.TEMP_INTERVENTIONS_PATH, index=False)
+    pd.Series(iv_nodes).to_csv(interventions_path, index=False)
 
 
-def _load_dags():
+def _load_dags(dags_path):
     """
     Helper function to load the DAGs generated in R
     """
     adj_mats = []
-    paths = os.listdir(config.TEMP_DAG_FOLDER)
+    paths = os.listdir(dags_path)
     for file_path in paths:
         if 'score' not in file_path and '.DS_Store' not in file_path:
-            adj_mat = pd.read_csv(os.path.join(config.TEMP_DAG_FOLDER, file_path))
+            adj_mat = pd.read_csv(os.path.join(dags_path, file_path))
             adj_mats.append(adj_mat.as_matrix())
     return adj_mats, [cd.DAG.from_amat(adj) for adj in adj_mats]
 

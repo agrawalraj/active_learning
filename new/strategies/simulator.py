@@ -10,7 +10,7 @@ import numpy as np
 import os
 import causaldag as cd
 from logger import LOGGER
-from config import DATA_FOLDER
+from config import DATA_FOLDER, TEMP_INTERVENTIONS_PATH, TEMP_SAMPLES_PATH, TEMP_DAG_FOLDER
 from typing import Dict, Any
 
 
@@ -83,7 +83,7 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     # === RUN STRATEGY ON EACH BATCH
     for batch in range(simulator_config.n_batches):
         print('Batch %d' % batch)
-        batch_folder = os.path.join(strategy_folder, 'batch=%d/' % batch)
+        batch_folder = os.path.join(strategy_folder, 'dags_batch=%d/' % batch)
         os.makedirs(batch_folder, exist_ok=True)
         iteration_data = IterationData(
             current_data=all_samples,
@@ -103,4 +103,9 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
 
     for i, samples in all_samples.items():
         np.savetxt(os.path.join(samples_folder, 'intervention=%d.csv' % i), samples)
+
+    # === GET GIES SAMPLES GIVEN THE DATA FOR THIS SIMULATION
+    graph_utils._write_data(all_samples)
+    final_gies_dags_path = os.path.join(strategy_folder, 'dags_final')
+    graph_utils.run_gies_boot(100, TEMP_SAMPLES_PATH, TEMP_INTERVENTIONS_PATH, final_gies_dags_path)
 
