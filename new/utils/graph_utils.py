@@ -16,21 +16,21 @@ def RAND_RANGE():
     return np.random.uniform(.25, 1) * (-1 if bernoulli(.5) else 1)
 
 
-def run_min_imap(data_path, intervention_path, alpha=.05, gamma=1,
-    n_iter=50000, save_step=100, path=config.TEMP_DAG_FOLDER, delete=False):
-    # delete all DAGS in TEMP FOLDER
-    if delete:
-        try:
-            shutil.rmtree(path)
-            os.mkdir(path)
-            print('All files deleted in ' + path)
-        except Exception as e:
-            os.mkdir(path)
-            print('Made TEMP DAG directory')
-    rfile = os.path.join(config.TOP_FOLDER, 'utils', 'minIMAP.r')
-    r_command = 'Rscript {} {} {} {} {} {} {} {}'.format(rfile, data_path, intervention_path,
-        str(alpha), str(gamma), str(n_iter), str(save_step), path)
-    os.system(r_command)
+# def run_min_imap(data_path, intervention_path, alpha=.05, gamma=1,
+#     n_iter=50000, save_step=100, path=config.TEMP_DAG_FOLDER, delete=False):
+#     # delete all DAGS in TEMP FOLDER
+#     if delete:
+#         try:
+#             shutil.rmtree(path)
+#             os.mkdir(path)
+#             print('All files deleted in ' + path)
+#         except Exception as e:
+#             os.mkdir(path)
+#             print('Made TEMP DAG directory')
+#     rfile = os.path.join(config.TOP_FOLDER, 'utils', 'minIMAP.r')
+#     r_command = 'Rscript {} {} {} {} {} {} {} {}'.format(rfile, data_path, intervention_path,
+#         str(alpha), str(gamma), str(n_iter), str(save_step), path)
+#     os.system(r_command)
 
 
 def run_gies_boot(n_boot, data_path, intervention_path, dags_path, delete=False):
@@ -38,11 +38,11 @@ def run_gies_boot(n_boot, data_path, intervention_path, dags_path, delete=False)
     if delete:
         try:
             shutil.rmtree(dags_path)
-            os.mkdir(dags_path)
             print('All DAGs deleted in ' + dags_path)
-        except Exception as e:
-            os.mkdir(dags_path)
-            print('Made TEMP DAG directory')
+        except FileNotFoundError as e:
+            pass
+    if not os.path.exists(dags_path):
+        os.mkdir(dags_path)
     rfile = os.path.join(config.TOP_FOLDER, 'utils', 'run_gies.r')
     r_command = 'Rscript {} {} {} {} {}'.format(rfile, n_boot, data_path, intervention_path, dags_path)
     os.system(r_command)

@@ -4,13 +4,11 @@ import sys
 
 sys.path.append('../')
 
-from utils import sys_utils
 from utils import graph_utils
 import numpy as np
 import os
 import causaldag as cd
-from logger import LOGGER
-from config import DATA_FOLDER, TEMP_INTERVENTIONS_PATH, TEMP_SAMPLES_PATH, TEMP_DAG_FOLDER
+from config import DATA_FOLDER
 from typing import Dict, Any
 
 
@@ -60,8 +58,9 @@ class IterationData:
     batch_folder: str
 
 
-def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_dags_final):
+def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_dags_final=100):
     samples_folder = os.path.join(strategy_folder, 'samples')
+    print('Saving to %s' % samples_folder)
 
     # === SAVE SIMULATION META-INFORMATION
     os.makedirs(samples_folder, exist_ok=True)
@@ -105,7 +104,9 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
         np.savetxt(os.path.join(samples_folder, 'intervention=%d.csv' % i), samples)
 
     # === GET GIES SAMPLES GIVEN THE DATA FOR THIS SIMULATION
-    graph_utils._write_data(all_samples)
-    final_gies_dags_path = os.path.join(strategy_folder, 'dags_final')
-    graph_utils.run_gies_boot(100, TEMP_SAMPLES_PATH, TEMP_INTERVENTIONS_PATH, final_gies_dags_path)
+    final_samples_path = os.path.join(strategy_folder, 'final_samples.csv')
+    final_interventions_path = os.path.join(strategy_folder, 'final_interventions')
+    final_gies_dags_path = os.path.join(strategy_folder, 'final_dags/')
+    graph_utils._write_data(all_samples, final_samples_path, final_interventions_path)
+    graph_utils.run_gies_boot(num_bootstrap_dags_final, final_samples_path, final_interventions_path, final_gies_dags_path)
 
