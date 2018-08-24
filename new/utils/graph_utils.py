@@ -82,3 +82,10 @@ def _load_dags(dags_path, delete=True):
 def probability_shrinkage(prob):
     return 2 * min(1 - prob, prob)
 
+
+def entropy_shrinkage(prob):
+    if prob == 0 or prob == 1:
+        return 0
+    return (prob * np.log(prob) + (1 - prob) * np.log(1 - prob)) / np.log(2)  
+
+
