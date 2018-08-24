@@ -64,7 +64,7 @@ def _write_data(data, samples_path, interventions_path):
     pd.Series(iv_nodes).to_csv(interventions_path, index=False)
 
 
-def _load_dags(dags_path):
+def _load_dags(dags_path, delete=True):
     """
     Helper function to load the DAGs generated in R
     """
@@ -74,6 +74,8 @@ def _load_dags(dags_path):
         if 'score' not in file_path and '.DS_Store' not in file_path:
             adj_mat = pd.read_csv(os.path.join(dags_path, file_path))
             adj_mats.append(adj_mat.as_matrix())
+            if delete:
+                os.remove(os.path.join(dags_path, file_path))
     return adj_mats, [cd.DAG.from_amat(adj) for adj in adj_mats]
 
 

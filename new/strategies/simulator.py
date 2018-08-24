@@ -10,6 +10,7 @@ import os
 import causaldag as cd
 from config import DATA_FOLDER
 from typing import Dict, Any
+import shutil
 
 
 @dataclass
@@ -109,4 +110,7 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     final_gies_dags_path = os.path.join(strategy_folder, 'final_dags/')
     graph_utils._write_data(all_samples, final_samples_path, final_interventions_path)
     graph_utils.run_gies_boot(num_bootstrap_dags_final, final_samples_path, final_interventions_path, final_gies_dags_path)
+    amats, dags = graph_utils._load_dags(final_gies_dags_path, delete=True)
+    for d, amat in enumerate(amats):
+        np.save(os.path.join(final_gies_dags_path, 'dag%d.npy' % d), amat)
 

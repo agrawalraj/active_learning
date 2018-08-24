@@ -1,11 +1,11 @@
 from utils import graph_utils
-import config
 import operator as op
 import random
 from logger import LOGGER
 from collections import defaultdict
 import numpy as np
 import os
+import shutil
 
 
 def create_learn_target_parents(target, n_boot=100):
@@ -20,12 +20,12 @@ def create_learn_target_parents(target, n_boot=100):
         # === DEFINE PATHS FOR FILES WHICH WILL HOLD THE TEMPORARY DATA
         samples_path = os.path.join(iteration_data.batch_folder, 'samples.csv')
         interventions_path = os.path.join(iteration_data.batch_folder, 'interventions.csv')
-        dags_path = os.path.join(iteration_data.batch_folder, 'TEMP_DAGS')
+        dags_path = os.path.join(iteration_data.batch_folder, 'TEMP_DAGS/')
 
         # === SAVE DATA, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
         graph_utils._write_data(iteration_data.current_data, samples_path, interventions_path)
         graph_utils.run_gies_boot(n_boot, samples_path, interventions_path, dags_path, delete=True)
-        amats, dags = graph_utils._load_dags(dags_path)
+        amats, dags = graph_utils._load_dags(dags_path, delete=True)
         if len(dags) != n_boot:
             raise RuntimeError('Correct number of DAGs not saved, check R code')
 
