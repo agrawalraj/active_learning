@@ -43,7 +43,10 @@ STRATEGIES = {
     'edge-prob': edge_prob.create_edge_prob_strategy(target, NUM_BOOTSTRAP_DAGS_BATCH)
 }
 
-folders = [os.path.join(DATA_FOLDER, args.folder, 'dag%d' % i, args.strategy) for i in range(ndags)]
+folders = [
+    os.path.join(DATA_FOLDER, args.folder, 'dag%d' % i, args.strategy + 'n=%s,b=%s,k=%s' % (args.samples, args.batches, args.max_interventions))
+    for i in range(ndags)
+]
 
 
 def simulate_(tup):

@@ -1,4 +1,4 @@
-causaldag==0.1a19
+causaldag==0.1a21
 cycler==0.10.0
 dataclasses==0.6
 decorator==4.3.0

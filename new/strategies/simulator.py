@@ -10,7 +10,7 @@ import os
 import causaldag as cd
 from config import DATA_FOLDER
 from typing import Dict, Any
-import shutil
+import time
 
 
 @dataclass
@@ -60,6 +60,8 @@ class IterationData:
 
 
 def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_dags_final=100):
+    start = time.time()
+
     samples_folder = os.path.join(strategy_folder, 'samples')
     print('Saving to %s' % samples_folder)
 
@@ -114,3 +116,5 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     for d, amat in enumerate(amats):
         np.save(os.path.join(final_gies_dags_path, 'dag%d.npy' % d), amat)
 
+    with open(os.path.join(samples_folder, 'time.txt'), 'w') as f:
+        f.write(time.time() - start)
