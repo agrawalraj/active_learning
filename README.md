@@ -17,3 +17,7 @@ git clone https://github.com/rajisme/active_learning.git
 cd active_learning/new
 bash make_venv.sh
 ```
+### To zip results:
+```
+tar -zcf <dataset_name>.tar.gz data/<dataset_name>
+```
