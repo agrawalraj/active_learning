@@ -117,4 +117,4 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
         np.save(os.path.join(final_gies_dags_path, 'dag%d.npy' % d), amat)
 
     with open(os.path.join(samples_folder, 'time.txt'), 'w') as f:
-        f.write(time.time() - start)
+        f.write(str(time.time() - start))
