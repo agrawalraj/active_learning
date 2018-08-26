@@ -14,7 +14,7 @@ from causaldag import BinaryIntervention, ConstantIntervention
 
 def node_iv_var_mat(adj_mat, node_vars, iv_strengths, n_monte_carlo=1000):
     p = adj_mat.shape[0]
-    gdag = cd.GaussDAG.from_weight_matrix(adj_mat)
+    gdag = cd.GaussDAG.from_amat(adj_mat)
     var_mat = np.zeros((p, p))
     ivs = []
     for i, iv_strength in enumerate(iv_strengths):

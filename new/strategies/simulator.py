@@ -28,8 +28,8 @@ class GenerationConfig:
 
         print('=== Saving DAGs ===')
         for i, gdag in enumerate(gdags):
-            os.makedirs(os.path.join(DATA_FOLDER, folder, 'dag%d' % i), exist_ok=True)
-            np.savetxt(os.path.join(DATA_FOLDER, folder, 'dag%d' % i, 'adjacency.txt'), gdag.to_amat())
+            os.makedirs(os.path.join(DATA_FOLDER, folder, 'dags', 'dag%d' % i), exist_ok=True)
+            np.savetxt(os.path.join(DATA_FOLDER, folder, 'dags', 'dag%d' % i, 'adjacency.txt'), gdag.to_amat())
         print('=== Saved ===')
         return gdags
 
@@ -62,14 +62,10 @@ class IterationData:
 def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_dags_final=100):
     start = time.time()
 
-    samples_folder = os.path.join(strategy_folder, 'samples')
-    print('Saving to %s' % samples_folder)
-
     # === SAVE SIMULATION META-INFORMATION
-    os.makedirs(samples_folder, exist_ok=True)
-    simulator_config.save(samples_folder)
+    simulator_config.save(strategy_folder)
 
-    # === START OFF WITH OBSERVATIONAL DATA
+    # === SAMPLE SOME OBSERVATIONAL DATA TO START WITH
     n_nodes = len(gdag.nodes)
     all_samples = {i: np.zeros([0, n_nodes]) for i in range(n_nodes)}
     all_samples[-1] = gdag.sample(simulator_config.starting_samples)
@@ -103,6 +99,8 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
             new_samples = gdag.sample_interventional({iv_node: intervention.sample}, nsamples)
             all_samples[iv_node] = np.vstack((all_samples[iv_node], new_samples))
 
+    samples_folder = os.path.join(strategy_folder, 'samples')
+    os.makedirs(samples_folder, exist_ok=True)
     for i, samples in all_samples.items():
         np.savetxt(os.path.join(samples_folder, 'intervention=%d.csv' % i), samples)
 

@@ -33,7 +33,7 @@ SIM_CONFIG = SimulationConfig(
 
 ndags = max(int(f[3:]) for f in os.listdir(os.path.join(DATA_FOLDER, args.folder)) if f.startswith('dag')) + 1
 amats = [np.loadtxt(os.path.join(DATA_FOLDER, args.folder, 'dag%d' % i, 'adjacency.txt')) for i in range(ndags)]
-dags = [cd.GaussDAG.from_weight_matrix(amat) for amat in amats]
+dags = [cd.GaussDAG.from_amat(amat) for amat in amats]
 nnodes = len(dags[0].nodes)
 target = int(np.ceil(nnodes/2))
 
@@ -44,7 +44,7 @@ STRATEGIES = {
 }
 
 folders = [
-    os.path.join(DATA_FOLDER, args.folder, 'dag%d' % i, args.strategy + 'n=%s,b=%s,k=%s' % (args.samples, args.batches, args.max_interventions))
+    os.path.join(DATA_FOLDER, args.folder, 'dags', 'dag%d' % i, args.strategy + ',n=%s,b=%s,k=%s' % (args.samples, args.batches, args.max_interventions))
     for i in range(ndags)
 ]
 
