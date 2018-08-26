@@ -5,6 +5,7 @@ import numpy as np
 from utils import graph_utils
 from analysis.rates_helper import RatesHelper
 import xarray as xr
+import json
 
 
 def get_dag_folders(dataset_folder):
@@ -34,20 +35,25 @@ def get_parent_probs_by_dag(dag_folders, target, verbose=True):
     results_by_dag = []
 
     for i, dag_folder in enumerate(dag_folders):
-        if verbose and i % 10 == 0: print('Loading parent probabilities for DAG %d' % i)
         result_by_strategy = {}
         for filename in os.listdir(dag_folder):
             filename = os.path.join(dag_folder, filename)
             if os.path.isdir(filename):
-                dags = get_final_dags(filename)
-                dag_target_parents = [dag.parents[target] for dag in dags]
+                final_parent_probs_filename = os.path.join(filename, 'parent_probs.json')
+                if not os.path.exists(final_parent_probs_filename):
+                    if verbose: print('Computing parent probabilities for DAG %d' % i)
+                    dags = get_final_dags(filename)
+                    dag_target_parents = [dag.parents[target] for dag in dags]
 
-                # CALCULATE PARENT FREQUENCIES FROM DAGS
-                parent_counts = {node: 0 for node in dags[0].nodes}
-                for dag, target_parents in zip(dags, dag_target_parents):
-                    for p in target_parents:
-                        parent_counts[p] += 1
-                parent_probs = {p: c / len(dags) for p, c in parent_counts.items()}
+                    # CALCULATE PARENT FREQUENCIES FROM DAGS
+                    parent_counts = {node: 0 for node in dags[0].nodes}
+                    for dag, target_parents in zip(dags, dag_target_parents):
+                        for p in target_parents:
+                            parent_counts[p] += 1
+                    parent_probs = {p: c / len(dags) for p, c in parent_counts.items()}
+                    json.dump(parent_probs, open(final_parent_probs_filename, 'w'), indent=2)
+                else:
+                    parent_probs = {int(node): val for node, val in json.load(open(final_parent_probs_filename)).items()}
 
                 result_by_strategy[os.path.basename(filename)] = parent_probs
         results_by_dag.append(result_by_strategy)
@@ -108,20 +114,20 @@ def get_rates_data_array(parent_probs_by_dag, true_dags, target, strategy_names,
                     false_positives=false_positives,
                     false_negatives=false_negatives
                 ).to_dict()
-                print(strategy)
-                print(rh)
                 for rate in selected_rates:
-                    # print(s2ix[strategy_name])
-                    # print(k2ix[k])
-                    # print(b2ix[b])
-                    # print(n2ix[n])
+                    s_ix = s2ix[strategy_name]
+                    k_ix = k2ix[k]
+                    b_ix = b2ix[b]
+                    n_ix = n2ix[n]
+                    a_ix = alpha2ix[alpha]
+                    r_ix = rate2ix[rate]
                     rate_array[
-                        s2ix[strategy_name],
-                        k2ix[k],
-                        b2ix[b],
-                        n2ix[n],
-                        alpha2ix[alpha],
-                        rate2ix[rate],
+                        s_ix,
+                        k_ix,
+                        b_ix,
+                        n_ix,
+                        a_ix,
+                        r_ix,
                         dag_num
                     ] = rh[rate]
 
