@@ -1,4 +1,4 @@
-causaldag==0.1a21
+causaldag==0.1a22
 cycler==0.10.0
 dataclasses==0.6
 decorator==4.3.0
@@ -12,3 +12,4 @@ pytz==2018.4
 PyYAML==3.12
 scipy==1.1.0
 six==1.11.0
+xarray==0.10.8

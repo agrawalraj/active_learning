@@ -4,6 +4,7 @@ import causaldag as cd
 import numpy as np
 from utils import graph_utils
 from analysis.rates_helper import RatesHelper
+import xarray as xr
 
 
 def get_dag_folders(dataset_folder):
@@ -54,35 +55,94 @@ def get_parent_probs_by_dag(dag_folders, target, verbose=True):
     return results_by_dag
 
 
-def get_rates_by_dag(parent_probs_by_dag, true_dags, target, p_thresh=.5, verbose=True):
-    result_by_dag = []
-    for i, (parent_probs_by_strategy, true_dag) in enumerate(zip(parent_probs_by_dag, true_dags)):
-        if verbose and i % 10 == 0: print('Loading parent probabilities for DAG %d' % i)
+def get_rates_data_array(parent_probs_by_dag, true_dags, target, strategy_names, ks, bs, ns, alphas, verbose=True):
+    """
+    Return a DataArray with dimensions:
+    (strategy_names, ks, bs, ns, p_threshes, rates, trues_dags)
+    with the value of each rate statistic in each position
+    """
+    selected_rates = ['tpr', 'fpr', 'tnr', 'fnr', 'ppv', 'npv']
+    rate_array = np.zeros([
+        len(strategy_names),
+        len(ks),
+        len(bs),
+        len(ns),
+        len(alphas),
+        len(selected_rates),
+        len(true_dags)
+    ])
+    s2ix = {s: ix for ix, s in enumerate(strategy_names)}
+    k2ix = {k: ix for ix, k in enumerate(ks)}
+    b2ix = {b: ix for ix, b in enumerate(bs)}
+    n2ix = {n: ix for ix, n in enumerate(ns)}
+    alpha2ix = {alpha: ix for ix, alpha in enumerate(alphas)}
+    rate2ix = {r: ix for ix, r in enumerate(selected_rates)}
+
+    # ITERATE OVER ALL DAGS
+    for dag_num, (parent_probs_by_strategy, true_dag) in enumerate(zip(parent_probs_by_dag, true_dags)):
+        if verbose and dag_num % 10 == 0: print('Loading parent probabilities for DAG %d' % dag_num)
         true_parents = true_dag.parents[target]
+        true_nonparents = (true_dag.nodes - true_parents - {target})
 
-        result_by_strategy = {}
+        # ITERATE THROUGH EACH STRATEGY
         for strategy, parent_probs in parent_probs_by_strategy.items():
-            positives = {p for p, prob in parent_probs.items() if prob >= p_thresh}
-            negatives = {p for p, prob in parent_probs.items() if prob < p_thresh}
+            # GET PARAMETERS USED BY STRATEGY
+            strategy_name, n_str, b_str, k_str = strategy.split(',')
+            k = int(k_str[2:])
+            b = int(b_str[2:])
+            n = int(n_str[2:])
 
-            true_positives = positives & true_parents
-            true_negatives = negatives & (true_dag.nodes - true_parents)
-            false_positives = positives & (true_dag.nodes - true_parents)
-            false_negatives = negatives & true_parents
+            # ITERATE OVER EACH ALPHA
+            for alpha in alphas:
+                labelled_positives = {p for p, prob in parent_probs.items() if prob >= alpha}
+                labelled_negatives = set(parent_probs.keys()) - labelled_positives
 
-            result_by_strategy[strategy] = RatesHelper(
-                true_positives=true_positives,
-                true_negatives=true_negatives,
-                false_positives=false_positives,
-                false_negatives=false_negatives
-            ).to_dict()
-        result_by_dag.append(result_by_strategy)
+                true_positives = labelled_positives & true_parents
+                true_negatives = labelled_negatives & true_nonparents
+                false_positives = labelled_positives & true_nonparents
+                false_negatives = labelled_negatives & true_parents
 
-    return result_by_dag
+                rh = RatesHelper(
+                    true_positives=true_positives,
+                    true_negatives=true_negatives,
+                    false_positives=false_positives,
+                    false_negatives=false_negatives
+                ).to_dict()
+                print(strategy)
+                print(rh)
+                for rate in selected_rates:
+                    # print(s2ix[strategy_name])
+                    # print(k2ix[k])
+                    # print(b2ix[b])
+                    # print(n2ix[n])
+                    rate_array[
+                        s2ix[strategy_name],
+                        k2ix[k],
+                        b2ix[b],
+                        n2ix[n],
+                        alpha2ix[alpha],
+                        rate2ix[rate],
+                        dag_num
+                    ] = rh[rate]
+
+    return xr.DataArray(
+        rate_array,
+        coords=[strategy_names, ks, bs, ns, alphas, selected_rates, range(len(true_dags))],
+        dims=['strategy', 'k', 'b', 'n', 'alpha', 'rate', 'dag']
+    )
 
 
 if __name__ == '__main__':
     dag_folders = get_dag_folders('test')
     true_dags = get_true_dags(dag_folders)
     parent_probs_by_dag = get_parent_probs_by_dag(dag_folders, 3)
-    rates_by_dag = get_rates_by_dag(parent_probs_by_dag, true_dags, 3)
+    rates_da = get_rates_data_array(
+        parent_probs_by_dag,
+        true_dags,
+        target=3,
+        strategy_names=['random', 'edge-prob'],
+        ks=[2],
+        bs=[1],
+        ns=[30, 60],
+        alphas=np.linspace(0, 1, 11)
+    )

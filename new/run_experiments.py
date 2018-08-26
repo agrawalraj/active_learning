@@ -31,8 +31,8 @@ SIM_CONFIG = SimulationConfig(
     intervention_strength=INTERVENTION_STRENGTH,
 )
 
-ndags = max(int(f[3:]) for f in os.listdir(os.path.join(DATA_FOLDER, args.folder)) if f.startswith('dag')) + 1
-amats = [np.loadtxt(os.path.join(DATA_FOLDER, args.folder, 'dag%d' % i, 'adjacency.txt')) for i in range(ndags)]
+ndags = len(os.listdir(os.path.join(DATA_FOLDER, args.folder, 'dags')))
+amats = [np.loadtxt(os.path.join(DATA_FOLDER, args.folder, 'dags', 'dag%d' % i, 'adjacency.txt')) for i in range(ndags)]
 dags = [cd.GaussDAG.from_amat(amat) for amat in amats]
 nnodes = len(dags[0].nodes)
 target = int(np.ceil(nnodes/2))

@@ -63,6 +63,7 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     start = time.time()
 
     # === SAVE SIMULATION META-INFORMATION
+    os.makedirs(strategy_folder, exist_ok=True)
     simulator_config.save(strategy_folder)
 
     # === SAMPLE SOME OBSERVATIONAL DATA TO START WITH
