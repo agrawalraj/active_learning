@@ -13,7 +13,11 @@ From ipython3, try:
 
 ## To run on the server:
 ```
-sudo yum install git
 git clone https://github.com/rajisme/active_learning.git
-bash make_venv_server.sh
+cd active_learning/new
+bash make_venv.sh
+```
+### To zip results:
+```
+tar -zcf <dataset_name>.tar.gz data/<dataset_name>
 ```
