@@ -2,7 +2,7 @@ import argparse
 import os
 import numpy as np
 from strategies.simulator import SimulationConfig, simulate
-from strategies import random_nodes, learn_target_parents, edge_prob
+from strategies import random_nodes, learn_target_parents, edge_prob, var_score
 from config import DATA_FOLDER
 import causaldag as cd
 from multiprocessing import Pool, cpu_count
@@ -37,10 +37,23 @@ dags = [cd.GaussDAG.from_amat(amat) for amat in amats]
 nnodes = len(dags[0].nodes)
 target = int(np.ceil(nnodes/2))
 
+
+def get_strategy(strategy, dag):
+    if strategy == 'random':
+        return random_nodes.random_strategy
+    if strategy == 'learn-parents':
+        return learn_target_parents.create_learn_target_parents(target, NUM_BOOTSTRAP_DAGS_BATCH)
+    if strategy == 'edge-prob':
+        return edge_prob.create_edge_prob_strategy(target, NUM_BOOTSTRAP_DAGS_BATCH)
+    if strategy == 'var-score':
+        node_vars = np.diag(dag.covariance)
+        return var_score.create_variance_strategy(target, node_vars, [2]*len(node_vars))
+
 STRATEGIES = {
     'random': random_nodes.random_strategy,
     'learn-parents': learn_target_parents.create_learn_target_parents(target, NUM_BOOTSTRAP_DAGS_BATCH),
-    'edge-prob': edge_prob.create_edge_prob_strategy(target, NUM_BOOTSTRAP_DAGS_BATCH)
+    'edge-prob': edge_prob.create_edge_prob_strategy(target, NUM_BOOTSTRAP_DAGS_BATCH),
+    'var-score': var_score.create_variance_strategy(target, )
 }
 
 folders = [
@@ -56,5 +69,4 @@ def simulate_(tup):
 
 with Pool(cpu_count()-1) as p:
     p.map(simulate_, zip(dags, folders))
-
 
