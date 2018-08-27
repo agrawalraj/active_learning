@@ -51,5 +51,5 @@ python3 run_experiments.py -n 240 -b 4 -k 2 --folder twenty --strategy random
 python3 run_experiments.py -n 240 -b 4 -k 2 --folder twenty --strategy edge-prob
 python3 run_experiments.py -n 240 -b 4 -k 2 --folder twenty --strategy learn-parents
 
-
+tar -czf data/twenty.tar.gz data/twenty
 

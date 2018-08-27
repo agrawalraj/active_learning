@@ -19,10 +19,13 @@ class GenerationConfig:
     edge_prob: float
     n_dags: int
 
-    def save_dags(self, folder):
+    def save_dags(self, folder, type_='erdos'):
         os.makedirs(folder, exist_ok=True)
         yaml.dump(asdict(self), open(os.path.join(folder, 'config.yaml'), 'w'))
-        dags = cd.rand.directed_erdos(self.n_nodes, self.edge_prob, size=self.n_dags)
+        if type_ == 'erdos':
+            dags = cd.rand.directed_erdos(self.n_nodes, self.edge_prob, size=self.n_dags)
+        else:
+            dags = None
         dag_arcs = [{(i, j): graph_utils.RAND_RANGE() for i, j in dag.arcs} for dag in dags]
         gdags = [cd.GaussDAG(nodes=list(range(self.n_nodes)), arcs=arcs) for arcs in dag_arcs]
 
@@ -70,6 +73,16 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     n_nodes = len(gdag.nodes)
     all_samples = {i: np.zeros([0, n_nodes]) for i in range(n_nodes)}
     all_samples[-1] = gdag.sample(simulator_config.starting_samples)
+
+    # === GET GIES SAMPLES GIVEN JUST OBSERVATIONAL DATA
+    initial_samples_path = os.path.join(strategy_folder, 'initial_samples.csv')
+    initial_interventions_path = os.path.join(strategy_folder, 'initial_interventions')
+    initial_gies_dags_path = os.path.join(strategy_folder, 'initial_dags/')
+    graph_utils._write_data(all_samples, initial_samples_path, initial_interventions_path)
+    graph_utils.run_gies_boot(num_bootstrap_dags_final, initial_samples_path, initial_interventions_path, initial_gies_dags_path)
+    amats, dags = graph_utils._load_dags(initial_gies_dags_path, delete=True)
+    for d, amat in enumerate(amats):
+        np.save(os.path.join(initial_gies_dags_path, 'dag%d.npy' % d), amat)
 
     # === SPECIFY INTERVENTIONAL DISTRIBUTIONS BASED ON EACH NODE'S STANDARD DEVIATION
     interventions = [
