@@ -35,13 +35,13 @@ def get_parent_probs_by_dag(dag_folders, target, verbose=True):
     results_by_dag = []
 
     for i, dag_folder in enumerate(dag_folders):
+        print(dag_folder)
         result_by_strategy = {}
         for filename in os.listdir(dag_folder):
             filename = os.path.join(dag_folder, filename)
             if os.path.isdir(filename):
                 final_parent_probs_filename = os.path.join(filename, 'parent_probs.json')
                 if not os.path.exists(final_parent_probs_filename):
-                    if verbose: print('Computing parent probabilities for DAG %d' % i)
                     dags = get_final_dags(filename)
                     dag_target_parents = [dag.parents[target] for dag in dags]
 
@@ -86,7 +86,6 @@ def get_rates_data_array(parent_probs_by_dag, true_dags, target, strategy_names,
 
     # ITERATE OVER ALL DAGS
     for dag_num, (parent_probs_by_strategy, true_dag) in enumerate(zip(parent_probs_by_dag, true_dags)):
-        if verbose and dag_num % 10 == 0: print('Loading parent probabilities for DAG %d' % dag_num)
         true_parents = true_dag.parents[target]
         true_nonparents = (true_dag.nodes - true_parents - {target})
 

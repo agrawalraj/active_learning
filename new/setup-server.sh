@@ -3,6 +3,7 @@
 yes| sudo apt-get install libv8-3.14-dev
 yes| sudo apt-get install libcurl4-openssl-dev
 yes | sudo apt-get install r-base
+Rscript install.R
 sudo apt install python3-pip
 pip3 install virtualenv
 python3 -m virtualenv ./venv

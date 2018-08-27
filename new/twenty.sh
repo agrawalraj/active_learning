@@ -53,3 +53,4 @@ python3 run_experiments.py -n 240 -b 4 -k 2 --folder twenty --strategy learn-par
 
 tar -czf data/twenty.tar.gz data/twenty
 
+python3
