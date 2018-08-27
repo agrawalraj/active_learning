@@ -18,14 +18,15 @@ class GenerationConfig:
     n_nodes: int
     edge_prob: float
     n_dags: int
+    graph_type: str = 'erdos'
 
-    def save_dags(self, folder, type_='erdos'):
+    def save_dags(self, folder):
         os.makedirs(folder, exist_ok=True)
         yaml.dump(asdict(self), open(os.path.join(folder, 'config.yaml'), 'w'))
-        if type_ == 'erdos':
+        if self.graph_type == 'erdos':
             dags = cd.rand.directed_erdos(self.n_nodes, self.edge_prob, size=self.n_dags)
         else:
-            dags = None
+            dags = [graph_utils.generate_DAG(self.n_nodes, type_=self.graph_type)]
         dag_arcs = [{(i, j): graph_utils.RAND_RANGE() for i, j in dag.arcs} for dag in dags]
         gdags = [cd.GaussDAG(nodes=list(range(self.n_nodes)), arcs=arcs) for arcs in dag_arcs]
 

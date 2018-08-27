@@ -72,7 +72,7 @@ def generate_DAG(p, m=5, prob=.4, type_='config_model'):
         if np.sum(z) % 2 != 0:
             z[0] += 1
         G = nx.configuration_model(z)
-    elif type_ == 'barbasi':
+    elif type_ == 'barabasi':
         G = nx.barabasi_albert_graph(p, m)
     elif type_ == 'small_world':
         G = nx.watts_strogatz_graph(p, m, prob)
