@@ -15,9 +15,11 @@ From ipython3, try:
 ```
 git clone https://github.com/rajisme/active_learning.git
 cd active_learning/new
-bash make_venv.sh
+bash setup-server.sh
+(for now): copy install.R into R console
+source venv/bin/activate
 ```
 ### To zip results:
 ```
-tar -zcf <dataset_name>.tar.gz data/<dataset_name>
+tar -czf <dataset_name>.tar.gz data/<dataset_name>
 ```
