@@ -6,6 +6,8 @@ import numpy as np
 import config
 import pandas as pd
 import causaldag as cd
+import networkx as nx
+from networkx.utils import powerlaw_sequence
 
 
 def bernoulli(p):
@@ -62,6 +64,26 @@ def _write_data(data, samples_path, interventions_path):
             np.savetxt(f, samples)
         iv_nodes.extend([iv_node+1 if iv_node != -1 else -1]*len(samples))
     pd.Series(iv_nodes).to_csv(interventions_path, index=False)
+
+
+def generate_DAG(p, m=5, prob=.4, type_='config_model'):
+    if type_ == 'config_model':
+        z = [int(e) for e in powerlaw_sequence(p)]
+        if np.sum(z) % 2 != 0:
+            z[0] += 1
+        G = nx.configuration_model(z)
+    elif type_ == 'barbasi':
+        G = nx.barabasi_albert_graph(p, m)
+    elif type_ == 'small_world':
+        G = nx.watts_strogatz_graph(p, m, prob)
+    else: 
+        raise Exception('Not a graph type') 
+    G = nx.Graph(G)
+    dag = cd.DAG(nodes=set(range(p)))
+    for i, j in G.edges:
+        if i != j:
+            dag.add_arc(*sorted((i, j)))
+    return dag
 
 
 def _load_dags(dags_path, delete=True):
