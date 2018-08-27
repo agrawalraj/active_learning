@@ -49,13 +49,6 @@ def get_strategy(strategy, dag):
         node_vars = np.diag(dag.covariance)
         return var_score.create_variance_strategy(target, node_vars, [2]*len(node_vars))
 
-STRATEGIES = {
-    'random': random_nodes.random_strategy,
-    'learn-parents': learn_target_parents.create_learn_target_parents(target, NUM_BOOTSTRAP_DAGS_BATCH),
-    'edge-prob': edge_prob.create_edge_prob_strategy(target, NUM_BOOTSTRAP_DAGS_BATCH),
-    'var-score': var_score.create_variance_strategy(target, )
-}
-
 folders = [
     os.path.join(DATA_FOLDER, args.folder, 'dags', 'dag%d' % i, args.strategy + ',n=%s,b=%s,k=%s' % (args.samples, args.batches, args.max_interventions))
     for i in range(ndags)
@@ -64,7 +57,7 @@ folders = [
 
 def simulate_(tup):
     dag, folder = tup
-    simulate(STRATEGIES[args.strategy], SIM_CONFIG, dag, folder)
+    simulate(get_strategy(args.strategy, dag), SIM_CONFIG, dag, folder)
 
 
 with Pool(cpu_count()-1) as p:

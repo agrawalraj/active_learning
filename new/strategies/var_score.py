@@ -63,8 +63,10 @@ def create_var_score_fn(parent_shrinkage_scores, target, adj_mats, node_vars, iv
     for node in range(p): # Don't include target node
         if node != target:
             iv_scores[node, :] = iv_scores[node, :] * parent_shrinkage_scores[node]
+
     def var_score_fn(interventions):
         return np.sum(np.max(iv_scores[:, interventions], axis=1))
+
     return var_score_fn
 
 
@@ -114,7 +116,7 @@ def create_variance_strategy(target, node_vars, iv_strengths, n_boot=100):
                 parent_counts[p] += 1
         parent_probs = {p: c/len(dags) for p, c in parent_counts.items()}
         parent_shrinkage_scores = {p: graph_utils.probability_shrinkage(prob) for p, prob in parent_probs.items()}
-        var_score_fn = create_var_score_fn(parent_shrinkage_scores, target, adj_mats, node_vars, iv_strengths)
+        var_score_fn = create_var_score_fn(parent_shrinkage_scores, target, amats, node_vars, iv_strengths)
         p = amats[0].shape[0]
         iv_family = set()
         [iv_family.add(iv) for iv in range(p) if iv != target]
