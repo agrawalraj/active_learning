@@ -95,7 +95,7 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
 
     # === RUN STRATEGY ON EACH BATCH
     for batch in range(simulator_config.n_batches):
-        print('Batch %d' % batch)
+        print('Batch %d with %s' % (batch, simulator_config))
         batch_folder = os.path.join(strategy_folder, 'dags_batch=%d/' % batch)
         os.makedirs(batch_folder, exist_ok=True)
         iteration_data = IterationData(
