@@ -103,7 +103,6 @@ def create_variance_strategy(target, node_vars, iv_strengths, n_boot=100):
         dags_path = os.path.join(iteration_data.batch_folder, 'TEMP_DAGS/')
 
         # === SAVE DATA, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
-        print('intervened nodes:', iteration_data.current_data.keys())
         graph_utils._write_data(iteration_data.current_data, samples_path, interventions_path)
         graph_utils.run_gies_boot(n_boot, samples_path, interventions_path, dags_path, delete=True)
         amats, dags = graph_utils._load_dags(dags_path, delete=True)
