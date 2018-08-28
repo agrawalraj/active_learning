@@ -1,5 +1,5 @@
-library(pcalg)
-library(gRbase)
+suppressMessages(library(pcalg))
+suppressMessages(library(gRbase))
 
 adj2dag = function(adj_mat){
   p = dim(adj_mat)[1]

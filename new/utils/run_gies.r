@@ -1,5 +1,5 @@
-library(pcalg)
-library(gRbase)
+suppressMessages(library(pcalg))
+suppressMessages(library(gRbase))
 
 source('./utils/gies_helper.r') # ASSUMES RUN FROM NEW DIRECTORY
 

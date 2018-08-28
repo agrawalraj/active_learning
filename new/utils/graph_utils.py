@@ -95,7 +95,7 @@ def _load_dags(dags_path, delete=True):
     for file_path in paths:
         if 'score' not in file_path and '.DS_Store' not in file_path:
             adj_mat = pd.read_csv(os.path.join(dags_path, file_path))
-            adj_mats.append(adj_mat.as_matrix())
+            adj_mats.append(adj_mat.values)
             if delete:
                 os.remove(os.path.join(dags_path, file_path))
     return adj_mats, [cd.DAG.from_amat(adj) for adj in adj_mats]
