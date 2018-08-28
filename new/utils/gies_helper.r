@@ -28,7 +28,6 @@ bootstrap_gies = function(n_boot, data, interventions, path='../data/TEMP_DAGS/'
   colnames(data) = as.character(1:p)
   adj_mats = list()
   for(i in 1:n_boot){
-    print(paste('Bootstrap GIES Sample', i))
     boot_indcs = bootstrap_indcs(interventions)
     W = run_gies(data[boot_indcs, ], interventions[boot_indcs])
     colnames(W) = as.character(1:p)

@@ -1,7 +1,6 @@
 from utils import graph_utils
 import operator as op
 import random
-from logger import LOGGER
 from collections import defaultdict
 import numpy as np
 import os
@@ -65,11 +64,15 @@ def create_learn_target_parents(target, n_boot=100):
                     intervention_scores[iv] = np.mean(scores)
 
             # === SELECT INTERVENTION WITH MAXIMUM SCORE, BREAKING TIES
-            LOGGER.info('intervention scores: %s' % intervention_scores)
             max_score = max(intervention_scores.items(), key=op.itemgetter(1))[1]
             tied_best_ivs = [iv for iv, score in intervention_scores.items() if score == max_score]
             best_iv = random.choice(tied_best_ivs)
             selected_interventions[best_iv] = int(samples_per_iv)
+
+            if all(score == 0 for score in scores):
+                print('!!! NO INTERVENTION ORIENTS ANY EDGES')
+            else:
+                print('SELECTED INTERVENTION: %s' % best_iv)
 
         return selected_interventions
 

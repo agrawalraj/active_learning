@@ -18,12 +18,17 @@ def node_iv_var_mat(adj_mat, node_vars, iv_strengths, n_monte_carlo=1000):
     var_mat = np.zeros((p, p))
     ivs = []
     for i, iv_strength in enumerate(iv_strengths):
-        ivs.append(BinaryIntervention(ConstantIntervention(val=iv_strength).sample,
-         ConstantIntervention(val=-iv_strength).sample))
-    for iv in range(p):
-        iv_fn = ivs[iv]
-        iv_samps = gdag.sample_interventional({iv: iv_fn.sample}, n_monte_carlo)
-        var_mat[:, iv] = np.multiply(np.var(iv_samps, axis=0), 1 / node_vars)
+        ivs.append(
+            BinaryIntervention(
+                ConstantIntervention(val=iv_strength).sample,
+                ConstantIntervention(val=-iv_strength).sample
+            )
+        )
+
+    for ix, iv in enumerate(ivs):
+        iv_samps = gdag.sample_interventional({ix: iv.sample}, n_monte_carlo)
+        var_mat[:, ix] = np.multiply(np.var(iv_samps, axis=0), 1 / node_vars)
+
     return var_mat
 
 
@@ -128,14 +133,14 @@ def create_variance_strategy(target, node_vars, iv_strengths, n_boot=100):
     return variance_strategy
 
 
-# if __name__ == '__main__':
-    # B = np.zeros((3, 3))
-    # B[0, 2] = 1
-    # B[1, 2] = 1
-    # B[0, 1] = 2
-    # gdag = cd.GaussDAG.from_weight_matrix(B)
-    # obs_samps = gdag.sample(10000)
-    # node_vars = np.var(obs_samps, axis=0) # exact is (1, 5, 11)
-    # iv_strengths = [2, 3, 1]
+if __name__ == '__main__':
+    B = np.zeros((3, 3))
+    B[0, 2] = 1
+    B[1, 2] = 1
+    B[0, 1] = 2
+    gdag = cd.GaussDAG.from_amat(B)
+    obs_samps = gdag.sample(10000)
+    node_vars = np.var(obs_samps, axis=0) # exact is (1, 5, 11)
+    iv_strengths = [2, 3, 1]
 
 
