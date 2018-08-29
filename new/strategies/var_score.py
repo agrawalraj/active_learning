@@ -13,6 +13,10 @@ from causaldag import BinaryIntervention, ConstantIntervention
 
 
 def node_iv_var_mat(adj_mat, node_vars, iv_strengths, n_monte_carlo=1000):
+    """
+    GET MATRIX FROM EACH INTERVENTION (COLUMN) TO EACH NODE (ROW) THAT GIVES THE VARIANCE OF THE NODE
+    UNDER THE INTERVENTION
+    """
     p = adj_mat.shape[0]
     gdag = cd.GaussDAG.from_amat(adj_mat)
     var_mat = np.zeros((p, p))
@@ -49,7 +53,7 @@ def get_orient_mask(target, adj_mat):
 
 
 def var_score_mat(target, adj_mats, node_vars, iv_strengths):
-    node_vars = np.array(node_vars) # Make sure right type
+    node_vars = np.array(node_vars)  # Make sure right type
     iv_strengths = np.array(iv_strengths)
     p = adj_mats[0].shape[0]
     iv_scores = np.zeros((p, p))
@@ -65,28 +69,26 @@ def var_score_mat(target, adj_mats, node_vars, iv_strengths):
 def create_var_score_fn(parent_shrinkage_scores, target, adj_mats, node_vars, iv_strengths):
     p = adj_mats[0].shape[0]
     iv_scores = var_score_mat(target, adj_mats, node_vars, iv_strengths)
-    for node in range(p): # Don't include target node
+    for node in range(p):  # Don't include target node
         if node != target:
             iv_scores[node, :] = iv_scores[node, :] * parent_shrinkage_scores[node]
 
     def var_score_fn(interventions):
-        return np.sum(np.max(iv_scores[:, interventions], axis=1))
+        return np.sum(np.max(iv_scores[:, list(interventions)], axis=1))
 
     return var_score_fn
 
 
-def greedy_iv(int_score_fn, iv_family, K):
+def greedy_iv(intervention_scorer, iv_family, max_interventions):
     interventions = set()
-    while len(interventions) < K: 
-        iv_scores = {}
-        for iv in iv_family.difference(interventions):
-            prev_plus_cur_iv = interventions.copy()
-            prev_plus_cur_iv.add(iv)
-            iv_scores[iv] = int_score_fn(list(prev_plus_cur_iv))
+
+    while len(interventions) < max_interventions:
+        iv_scores = {iv: intervention_scorer(interventions | iv) for iv in iv_family - interventions}
         max_score = max(iv_scores.items(), key=op.itemgetter(1))[1]
         tied_best_ivs = [iv for iv, score in iv_scores.items() if score == max_score]
         best_iv = random.choice(tied_best_ivs)
         interventions.add(best_iv)
+
     return list(interventions)
 
 
@@ -114,21 +116,27 @@ def create_variance_strategy(target, node_vars, iv_strengths, n_boot=100):
         for d, amat in enumerate(amats):
             np.save(os.path.join(iteration_data.batch_folder, 'dag%d.npy' % d), amat)
 
+        # === CALCULATE PARENT SHRINKAGE SCORES
         parent_counts = {node: 0 for node in dags[0].nodes}
         for dag, target_parents in zip(dags, dag_target_parents):
             for p in target_parents:
                 parent_counts[p] += 1
         parent_probs = {p: c/len(dags) for p, c in parent_counts.items()}
         parent_shrinkage_scores = {p: graph_utils.probability_shrinkage(prob) for p, prob in parent_probs.items()}
+
+        # === CREATE FUNCTION TO SCORE INTERVENTIONS, GIVEN THESE PARENT SHRINKAGE SCORE
         var_score_fn = create_var_score_fn(parent_shrinkage_scores, target, amats, node_vars, iv_strengths)
+
+        # === POSSIBLE NODES TO INTERVENE ON: ALL NODES EXCEPT TARGET
         p = amats[0].shape[0]
-        iv_family = set()
-        [iv_family.add(iv) for iv in range(p) if iv != target]
+        iv_family = {iv for iv in range(p) if iv != target}
+
+        # === GREEDILY SELECT INTERVENTIONS
         interventions = greedy_iv(var_score_fn, iv_family, iteration_data.max_interventions)
-        selected_interventions = {}
-        for iv in interventions:
-            selected_interventions[iv] = int(n)
+        selected_interventions = {int(n) for n in interventions}
+
         return selected_interventions
+
     return variance_strategy
 
 
