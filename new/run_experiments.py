@@ -47,7 +47,8 @@ def get_strategy(strategy, dag):
         return edge_prob.create_edge_prob_strategy(target, NUM_BOOTSTRAP_DAGS_BATCH)
     if strategy == 'var-score':
         node_vars = np.diag(dag.covariance)
-        return var_score.create_variance_strategy(target, node_vars, [2]*len(node_vars))
+        return var_score.create_variance_strategy(target, node_vars, [2*np.sqrt(node_var) for node_var in node_vars])
+
 
 folders = [
     os.path.join(DATA_FOLDER, args.folder, 'dags', 'dag%d' % i, args.strategy + ',n=%s,b=%s,k=%s' % (args.samples, args.batches, args.max_interventions))
