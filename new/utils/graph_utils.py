@@ -5,9 +5,12 @@ import shutil
 import numpy as np
 import config
 import pandas as pd
-import causaldag as cd
 import networkx as nx
 from networkx.utils import powerlaw_sequence
+from sksparse.cholmod import cholesky  # this has to be used instead of scipy's because it doesn't permute the matrix
+from scipy import sparse
+import operator as op
+import causaldag as cd
 
 
 def bernoulli(p):
@@ -110,4 +113,70 @@ def entropy_shrinkage(prob):
         return 0
     return (prob * np.log(prob) + (1 - prob) * np.log(1 - prob)) / np.log(2)  
 
+
+def prec2dag(prec, node_order):
+    p = prec.shape[0]
+
+    # === permute precision matrix into correct order for LDL
+    prec = prec.copy()
+    rev_node_order = list(reversed(node_order))
+    prec = prec[rev_node_order]
+    prec = prec[:, rev_node_order]
+
+    # === perform ldl decomposition and correct for floating point errors
+    factor = cholesky(sparse.csc_matrix(prec))
+    l, d = factor.L_D()
+    l = l.todense()
+    d = d.todense()
+
+    # === permute back
+    inv_rev_node_order = [i for i, j in sorted(enumerate(rev_node_order), key=op.itemgetter(1))]
+    l = l.copy()
+    l = l[inv_rev_node_order]
+    l = l[:, inv_rev_node_order]
+    d = d.copy()
+    d = d[inv_rev_node_order]
+    d = d[:, inv_rev_node_order]
+
+    amat = np.eye(p) - l
+    variances = np.diag(d) ** -1
+
+    return cd.GaussDAG.from_amat(amat, variances=variances)
+
+
+if __name__ == '__main__':
+    amat1 = np.array([
+        [0, 2, 3],
+        [0, 0, 5],
+        [0, 0, 0]
+    ])
+    g1 = cd.GaussDAG.from_amat(amat1)
+    prec = g1.precision
+    g1_ = prec2dag(prec, [0, 1, 2])
+    print(g1_.to_amat())
+
+    g2 = prec2dag(prec, [0, 2, 1])
+    print(g2.to_amat())
+    print(g2.variances)
+    print(g2.precision == g1.precision)
+
+    g3 = prec2dag(prec, [1, 0, 2])
+    print(g3.to_amat())
+    print(g3.variances)
+    print(g3.precision == g1.precision)
+
+    g4 = prec2dag(prec, [1, 2, 0])
+    print(g4.to_amat())
+    print(g4.variances)
+    print(g4.precision == g1.precision)
+
+    g5 = prec2dag(prec, [2, 0, 1])
+    print(g5.to_amat())
+    print(g5.variances)
+    print(g5.precision == g1.precision)
+
+    g6 = prec2dag(prec, [2, 1, 0])
+    print(g6.to_amat())
+    print(g6.variances)
+    print(g6.precision == g1.precision)
 

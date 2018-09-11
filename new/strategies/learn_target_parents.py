@@ -3,12 +3,10 @@ import operator as op
 import random
 from collections import defaultdict
 import numpy as np
-import os
-import shutil
+from strategies.collect_dags import collect_dags
 
 
 def create_learn_target_parents(target, n_boot=100):
-
     def learn_target_parents(iteration_data):
         # === CALCULATE NUMBER OF SAMPLES IN EACH INTERVENTION
         samples_per_iv = iteration_data.n_samples / (iteration_data.n_batches * iteration_data.max_interventions)
@@ -16,21 +14,7 @@ def create_learn_target_parents(target, n_boot=100):
             raise ValueError(
                 'number of samples divided by (number of batches * max number of interventions) is not an integer')
 
-        # === DEFINE PATHS FOR FILES WHICH WILL HOLD THE TEMPORARY DATA
-        samples_path = os.path.join(iteration_data.batch_folder, 'samples.csv')
-        interventions_path = os.path.join(iteration_data.batch_folder, 'interventions.csv')
-        dags_path = os.path.join(iteration_data.batch_folder, 'TEMP_DAGS/')
-
-        # === SAVE DATA, THEN CALL R CODE WITH DATA TO GET DAG SAMPLES
-        graph_utils._write_data(iteration_data.current_data, samples_path, interventions_path)
-        graph_utils.run_gies_boot(n_boot, samples_path, interventions_path, dags_path, delete=True)
-        amats, dags = graph_utils._load_dags(dags_path, delete=True)
-        if len(dags) != n_boot:
-            raise RuntimeError('Correct number of DAGs not saved, check R code')
-
-        # === SAVE SAMPLED DAGS FROM R FOR FUTURE REFERENCE
-        for d, amat in enumerate(amats):
-            np.save(os.path.join(iteration_data.batch_folder, 'dag%d.npy' % d), amat)
+        dags = collect_dags(iteration_data.batch_folder, iteration_data.current_data, n_boot)
 
         # === GET CPDAG AND PARENTS OF EACH DAG TO USE IN CALCULATING SCORE
         cpdags = [dag.cpdag() for dag in dags]
