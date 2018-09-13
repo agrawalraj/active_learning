@@ -69,7 +69,7 @@ def _write_data(data, samples_path, interventions_path):
     pd.Series(iv_nodes).to_csv(interventions_path, index=False)
 
 
-def generate_DAG(p, m=5, prob=.05, type_='config_model'):
+def generate_DAG(p, m=4, prob=.05, type_='config_model'):
     if type_ == 'config_model':
         z = [int(e) for e in powerlaw_sequence(p)]
         if np.sum(z) % 2 != 0:
