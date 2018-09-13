@@ -16,6 +16,7 @@ From ipython3, try:
 git clone https://github.com/rajisme/active_learning.git
 cd active_learning/new
 bash setup-server.sh
+sudo apt-get install libsuitesparse-dev
 (for now): copy install.R into R console
 source venv/bin/activate
 ```
