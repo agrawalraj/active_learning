@@ -2,7 +2,7 @@ import argparse
 import os
 import numpy as np
 from strategies.simulator import SimulationConfig, simulate
-from strategies import random_nodes, learn_target_parents, edge_prob, var_score
+from strategies import random_nodes, learn_target_parents, edge_prob, var_score, information_gain
 from config import DATA_FOLDER
 import causaldag as cd
 from multiprocessing import Pool, cpu_count
@@ -38,6 +38,15 @@ nnodes = len(dags[0].nodes)
 target = int(np.ceil(nnodes/2))
 
 
+def parent_functionals(target, nodes):
+    def get_parent_functional(parent):
+        def parent_functional(dag):
+            return parent in dag.parents[target]
+        return parent_functional
+
+    return [get_parent_functional(node) for node in nodes if node != target]
+
+
 def get_strategy(strategy, dag):
     if strategy == 'random':
         return random_nodes.random_strategy
@@ -48,6 +57,8 @@ def get_strategy(strategy, dag):
     if strategy == 'var-score':
         node_vars = np.diag(dag.covariance)
         return var_score.create_variance_strategy(target, node_vars, [2*np.sqrt(node_var) for node_var in node_vars])
+    if strategy == 'entropy':
+        return information_gain.create_info_gain_strategy(prec, NUM_BOOTSTRAP_DAGS_BATCH, parent_functionals(target, dag.nodes))
 
 
 folders = [

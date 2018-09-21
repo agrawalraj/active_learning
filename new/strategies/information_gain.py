@@ -5,6 +5,12 @@ import numpy as np
 import itertools as itr
 from collections import defaultdict
 from scipy.misc import logsumexp
+from scipy import special
+import random
+
+
+def binary_entropy(probs):
+    return special.entr(probs) - special.xlog1py(1 - probs, -probs)
 
 
 def create_info_gain_strategy(precision_matrix, n_boot, graph_functionals):
@@ -49,15 +55,31 @@ def create_info_gain_strategy(precision_matrix, n_boot, graph_functionals):
         current_logpdfs = np.zeros([n_boot, n_boot])
         selected_interventions = defaultdict(int)
         for sample_num in range(nsamples):
-            intervention_scores = defaultdict(int)
-            for intv_ix, interventions in enumerate(iteration_data.interventions):
+            intervention_scores = np.zeros(len(iteration_data.interventions))
+            intervention_logpdfs = np.zeros([len(iteration_data.interventions), n_boot, n_boot])
+            for intv_ix in range(len(iteration_data.interventions)):
                 for outer_dag_ix in range(n_boot):
+                    # current number of times this intervention has already been selected
                     datapoint_ix = selected_interventions[intv_ix]
-                    datapoint_logpdfs = logpdfs.sel(outer_dag=outer_dag_ix, intervention=intv_ix, datapoint=datapoint_ix)
-                    new_logpdfs = current_logpdfs[outer_dag_ix] + datapoint_logpdfs
+
+                    intervention_logpdfs[intv_ix][outer_dag_ix] = logpdfs.sel(
+                        outer_dag=outer_dag_ix,
+                        intervention=intv_ix,
+                        datapoint=datapoint_ix
+                    )
+                    new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[intv_ix][outer_dag_ix]
+
                     importance_weights = np.exp(new_logpdfs - logsumexp(new_logpdfs))
                     functional_probabilities = (importance_weights[:, np.newaxis] * functional_matrix).sum(axis=0)
-                    functional_entropies = None
+                    functional_entropies = binary_entropy(functional_probabilities)
+                    intervention_scores[intv_ix] += functional_entropies.sum()
+
+            max_scoring_interventions = np.nonzero(intervention_scores == intervention_scores.max())[0]
+            selected_intv_ix = random.choice(max_scoring_interventions)
+            current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]
+            selected_interventions[selected_intv_ix] += 1
+
+        return selected_interventions
 
     return info_gain_strategy
 

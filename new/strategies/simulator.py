@@ -74,6 +74,7 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     n_nodes = len(gdag.nodes)
     all_samples = {i: np.zeros([0, n_nodes]) for i in range(n_nodes)}
     all_samples[-1] = gdag.sample(simulator_config.starting_samples)
+    precision_matrix = np.linalg.inv(all_samples[-1].T @ all_samples[-1])
 
     # === GET GIES SAMPLES GIVEN JUST OBSERVATIONAL DATA
     initial_samples_path = os.path.join(strategy_folder, 'initial_samples.csv')
@@ -106,7 +107,8 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
             n_batches=simulator_config.n_batches,
             intervention_set=gdag.nodes,
             interventions=interventions,
-            batch_folder=batch_folder
+            batch_folder=batch_folder,
+            precision_matrix=precision_matrix
         )
         recommended_interventions = strategy(iteration_data)
         for iv_node, nsamples in recommended_interventions.items():
