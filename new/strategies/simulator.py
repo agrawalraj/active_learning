@@ -134,9 +134,10 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
             precision_matrix=precision_matrix
         )
         recommended_interventions = strategy(iteration_data)
-        for iv_node, nsamples in recommended_interventions.items():
-            intervention = interventions[iv_node]
-            new_samples = gdag.sample_interventional({iv_node: intervention}, nsamples)
+        print(recommended_interventions)
+        for intv_ix, nsamples in recommended_interventions.items():
+            iv_node = intervention_set[intv_ix]
+            new_samples = gdag.sample_interventional({iv_node: interventions[intv_ix]}, nsamples)
             all_samples[iv_node] = np.vstack((all_samples[iv_node], new_samples))
 
     samples_folder = os.path.join(strategy_folder, 'samples')

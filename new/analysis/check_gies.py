@@ -87,7 +87,7 @@ def get_rates_data_array(parent_probs_by_dag, true_dags, target, strategy_names,
     # ITERATE OVER ALL DAGS
     for dag_num, (parent_probs_by_strategy, true_dag) in enumerate(zip(parent_probs_by_dag, true_dags)):
         true_parents = true_dag.parents[target]
-        true_nonparents = (true_dag.nodes - true_parents - {target})
+        true_nonparents = (set(true_dag.nodes) - true_parents - {target})
 
         # ITERATE THROUGH EACH STRATEGY
         for strategy, parent_probs in parent_probs_by_strategy.items():

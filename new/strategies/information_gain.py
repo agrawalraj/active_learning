@@ -32,7 +32,6 @@ def create_info_gain_strategy(n_boot, graph_functionals):
         functional_matrix = np.zeros([n_boot, len(graph_functionals)])
         for (dag_ix, dag), (functional_ix, functional) in itr.product(enumerate(gauss_dags), enumerate(graph_functionals)):
             functional_matrix[dag_ix, functional_ix] = functional(dag)
-        print(functional_matrix.mean(axis=0))
 
         # === FOR EACH GRAPH, OBTAIN SAMPLES FOR EACH INTERVENTION THAT'LL BE USED TO BUILD UP THE HYPOTHETICAL DATASET
         print('COLLECTING DATA POINTS')
@@ -87,7 +86,7 @@ def create_info_gain_strategy(n_boot, graph_functionals):
 
                     functional_entropies = binary_entropy(functional_probabilities)
                     intervention_scores[intv_ix] += functional_entropies.sum()
-            print(intervention_scores)
+            # print(intervention_scores)
 
             if len(selected_interventions.keys()) < iteration_data.max_interventions:
                 best_intervention_score = intervention_scores.min()

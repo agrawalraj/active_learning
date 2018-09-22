@@ -9,7 +9,7 @@ from multiprocessing import Pool, cpu_count
 
 NUM_BOOTSTRAP_DAGS_BATCH = 50
 NUM_STARTING_SAMPLES = 250
-INTERVENTION_STRENGTH = .1
+INTERVENTION_STRENGTH = 2
 
 parser = argparse.ArgumentParser(description='Simulate strategy for learning parent nodes in a causal DAG.')
 
@@ -70,7 +70,6 @@ folders = [
 
 def simulate_(tup):
     dag, folder = tup
-    print(dag)
     simulate(get_strategy(args.strategy, dag), SIM_CONFIG, dag, folder)
 
 
