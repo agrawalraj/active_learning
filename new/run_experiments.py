@@ -7,9 +7,9 @@ from config import DATA_FOLDER
 import causaldag as cd
 from multiprocessing import Pool, cpu_count
 
-NUM_BOOTSTRAP_DAGS_BATCH = 100
+NUM_BOOTSTRAP_DAGS_BATCH = 50
 NUM_STARTING_SAMPLES = 250
-INTERVENTION_STRENGTH = 2
+INTERVENTION_STRENGTH = .1
 
 parser = argparse.ArgumentParser(description='Simulate strategy for learning parent nodes in a causal DAG.')
 
@@ -22,6 +22,12 @@ parser.add_argument('--strategy', type=str, help='Strategy to use')
 
 args = parser.parse_args()
 
+ndags = len(os.listdir(os.path.join(DATA_FOLDER, args.folder, 'dags')))
+amats = [np.loadtxt(os.path.join(DATA_FOLDER, args.folder, 'dags', 'dag%d' % i, 'adjacency.txt')) for i in range(ndags)]
+dags = [cd.GaussDAG.from_amat(amat) for amat in amats]
+nnodes = len(dags[0].nodes)
+target = int(np.ceil(nnodes/2) - 1)
+
 SIM_CONFIG = SimulationConfig(
     starting_samples=NUM_STARTING_SAMPLES,
     n_samples=args.samples,
@@ -29,13 +35,8 @@ SIM_CONFIG = SimulationConfig(
     max_interventions=args.max_interventions,
     strategy=args.strategy,
     intervention_strength=INTERVENTION_STRENGTH,
+    target=target
 )
-
-ndags = len(os.listdir(os.path.join(DATA_FOLDER, args.folder, 'dags')))
-amats = [np.loadtxt(os.path.join(DATA_FOLDER, args.folder, 'dags', 'dag%d' % i, 'adjacency.txt')) for i in range(ndags)]
-dags = [cd.GaussDAG.from_amat(amat) for amat in amats]
-nnodes = len(dags[0].nodes)
-target = int(np.ceil(nnodes/2))
 
 
 def parent_functionals(target, nodes):
@@ -58,7 +59,7 @@ def get_strategy(strategy, dag):
         node_vars = np.diag(dag.covariance)
         return var_score.create_variance_strategy(target, node_vars, [2*np.sqrt(node_var) for node_var in node_vars])
     if strategy == 'entropy':
-        return information_gain.create_info_gain_strategy(prec, NUM_BOOTSTRAP_DAGS_BATCH, parent_functionals(target, dag.nodes))
+        return information_gain.create_info_gain_strategy(NUM_BOOTSTRAP_DAGS_BATCH, parent_functionals(target, dag.nodes))
 
 
 folders = [
@@ -69,6 +70,7 @@ folders = [
 
 def simulate_(tup):
     dag, folder = tup
+    print(dag)
     simulate(get_strategy(args.strategy, dag), SIM_CONFIG, dag, folder)
 
 

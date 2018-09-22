@@ -11,6 +11,20 @@ import causaldag as cd
 from config import DATA_FOLDER
 from typing import Dict, Any
 import time
+import itertools as itr
+
+
+def get_component_dag(nnodes, p, nclusters=3):
+    cluster_cutoffs = [int(nnodes/nclusters)*i for i in range(nclusters+1)]
+    clusters = [list(range(cluster_cutoffs[i], cluster_cutoffs[i+1])) for i in range(len(cluster_cutoffs)-1)]
+    pairs_in_clusters = [list(itr.combinations(cluster, 2)) for cluster in clusters]
+    bools = np.random.binomial(1, p, sum(map(len, pairs_in_clusters)))
+    dag = cd.DAG(nodes=set(range(nnodes)))
+    for (i, j), b in zip(itr.chain(*pairs_in_clusters), bools):
+        if b != 0:
+            dag.add_arc(i, j)
+    return dag
+
 
 
 @dataclass
@@ -25,6 +39,10 @@ class GenerationConfig:
         yaml.dump(asdict(self), open(os.path.join(folder, 'config.yaml'), 'w'))
         if self.graph_type == 'erdos':
             dags = cd.rand.directed_erdos(self.n_nodes, self.edge_prob, size=self.n_dags)
+            if self.n_dags == 1:
+                dags = [dags]
+        elif self.graph_type == 'components':
+            dags = [get_component_dag(self.n_nodes, self.edge_prob) for _ in range(self.n_dags)]
         else:
             dags = [graph_utils.generate_DAG(self.n_nodes, type_=self.graph_type) for _ in range(self.n_dags)]
         dag_arcs = [{(i, j): graph_utils.RAND_RANGE() for i, j in dag.arcs} for dag in dags]
@@ -46,6 +64,7 @@ class SimulationConfig:
     strategy: str
     intervention_strength: float
     starting_samples: int
+    target: int
 
     def save(self, folder):
         yaml.dump(asdict(self), open(os.path.join(folder, 'sim-config.yaml'), 'w'), indent=2, default_flow_style=False)
@@ -61,6 +80,7 @@ class IterationData:
     intervention_set: list
     interventions: list
     batch_folder: str
+    precision_matrix: np.ndarray
 
 
 def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_dags_final=100):
@@ -87,12 +107,15 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
         np.save(os.path.join(initial_gies_dags_path, 'dag%d.npy' % d), amat)
 
     # === SPECIFY INTERVENTIONAL DISTRIBUTIONS BASED ON EACH NODE'S STANDARD DEVIATION
+    intervention_set = list(range(n_nodes))
     interventions = [
         cd.BinaryIntervention(
-            intervention1=cd.ConstantIntervention(val=-simulator_config.intervention_strength*std).sample,
-            intervention2=cd.ConstantIntervention(val=simulator_config.intervention_strength*std).sample
+            intervention1=cd.ConstantIntervention(val=-simulator_config.intervention_strength*std),
+            intervention2=cd.ConstantIntervention(val=simulator_config.intervention_strength*std)
         ) for std in np.diag(gdag.covariance)**.5
     ]
+    del intervention_set[simulator_config.target]
+    del interventions[simulator_config.target]
 
     # === RUN STRATEGY ON EACH BATCH
     for batch in range(simulator_config.n_batches):
@@ -105,7 +128,7 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
             n_samples=simulator_config.n_samples,
             batch_num=batch,
             n_batches=simulator_config.n_batches,
-            intervention_set=gdag.nodes,
+            intervention_set=intervention_set,
             interventions=interventions,
             batch_folder=batch_folder,
             precision_matrix=precision_matrix
@@ -113,7 +136,7 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
         recommended_interventions = strategy(iteration_data)
         for iv_node, nsamples in recommended_interventions.items():
             intervention = interventions[iv_node]
-            new_samples = gdag.sample_interventional({iv_node: intervention.sample}, nsamples)
+            new_samples = gdag.sample_interventional({iv_node: intervention}, nsamples)
             all_samples[iv_node] = np.vstack((all_samples[iv_node], new_samples))
 
     samples_folder = os.path.join(strategy_folder, 'samples')
