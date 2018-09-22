@@ -92,6 +92,7 @@ def get_rates_data_array(parent_probs_by_dag, true_dags, target, strategy_names,
         # ITERATE THROUGH EACH STRATEGY
         for strategy, parent_probs in parent_probs_by_strategy.items():
             # GET PARAMETERS USED BY STRATEGY
+            print(strategy)
             strategy_name, n_str, b_str, k_str = strategy.split(',')
             k = int(k_str[2:])
             b = int(b_str[2:])
