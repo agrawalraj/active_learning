@@ -8,7 +8,7 @@ def random_strategy(iteration_data):
         if int(n) != n:
             raise ValueError('n_samples / n_batches must be an integer')
         intv_ixs = list(range(len(iteration_data.intervention_set)))
-        return dict(Counter(random.choices(intv_ixs, int(n))))
+        return dict(Counter(random.choices(intv_ixs, k=int(n))))
     else:
         n = iteration_data.n_samples / (iteration_data.n_batches * iteration_data.max_interventions)
         if int(n) != n:
