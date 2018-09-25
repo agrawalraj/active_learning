@@ -24,6 +24,7 @@ def create_info_gain_strategy(n_boot, graph_functionals):
             nsamples = iteration_data.n_samples / iteration_data.n_batches
             if int(nsamples) != nsamples:
                 raise ValueError('n_samples / n_batches must be an integer')
+            nsamples = int(nsamples)
         # else:
         #     nsamples = iteration_data.n_samples / (iteration_data.n_batches * iteration_data.max_interventions)
         #     if int(nsamples) != nsamples:
