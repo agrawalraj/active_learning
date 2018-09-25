@@ -88,7 +88,7 @@ def create_info_gain_strategy(n_boot, graph_functionals):
                     intervention_scores[intv_ix] += functional_entropies.sum()
             # print(intervention_scores)
 
-            if len(selected_interventions.keys()) < iteration_data.max_interventions:
+            if iteration_data.max_interventions is None or len(selected_interventions.keys()) < iteration_data.max_interventions:
                 best_intervention_score = intervention_scores.min()
             else:
                 best_intervention_score = intervention_scores[list(selected_interventions.keys())].min()
