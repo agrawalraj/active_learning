@@ -20,10 +20,15 @@ def binary_entropy(probs):
 def create_info_gain_strategy(n_boot, graph_functionals):
     def info_gain_strategy(iteration_data):
         # === CALCULATE NUMBER OF SAMPLES IN EACH INTERVENTION
-        nsamples = iteration_data.n_samples / (iteration_data.n_batches * iteration_data.max_interventions)
-        if int(nsamples) != nsamples:
-            raise ValueError('n_samples / (n_batches * max interventions) must be an integer')
-        nsamples = int(nsamples)
+        if iteration_data.max_interventions is None:
+            nsamples = iteration_data.n_samples / iteration_data.n_batches
+            if int(nsamples) != nsamples:
+                raise ValueError('n_samples / n_batches must be an integer')
+        # else:
+        #     nsamples = iteration_data.n_samples / (iteration_data.n_batches * iteration_data.max_interventions)
+        #     if int(nsamples) != nsamples:
+        #         raise ValueError('n_samples / (n_batches * max interventions) must be an integer')
+        #     nsamples = int(nsamples)
 
         sampled_dags = collect_dags(iteration_data.batch_folder, iteration_data.current_data, n_boot)
         gauss_dags = [graph_utils.prec2dag(iteration_data.precision_matrix, dag.topological_sort()) for dag in sampled_dags]

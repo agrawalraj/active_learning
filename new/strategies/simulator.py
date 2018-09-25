@@ -134,6 +134,8 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
             precision_matrix=precision_matrix
         )
         recommended_interventions = strategy(iteration_data)
+        if not sum(recommended_interventions.values()) == iteration_data.n_samples / iteration_data.n_batches:
+            raise ValueError('Did not return correct amount of samples')
         print(recommended_interventions)
         for intv_ix, nsamples in recommended_interventions.items():
             iv_node = intervention_set[intv_ix]

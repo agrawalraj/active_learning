@@ -30,7 +30,7 @@ def get_final_dags(strategy_folder):
     return [cd.GaussDAG.from_amat(amat) for amat in amats]
 
 
-def get_parent_probs_by_dag(dag_folders, target, verbose=True):
+def wget_parent_probs_by_dag(dag_folders, target, verbose=True):
     # === RECORD RESULTS OF EACH STRATEGY FOR EACH DAG
     results_by_dag = []
 
