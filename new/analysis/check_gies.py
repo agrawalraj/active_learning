@@ -30,7 +30,7 @@ def get_final_dags(strategy_folder):
     return [cd.GaussDAG.from_amat(amat) for amat in amats]
 
 
-def wget_parent_probs_by_dag(dag_folders, target, verbose=True):
+def get_parent_probs_by_dag(dag_folders, target, verbose=True):
     # === RECORD RESULTS OF EACH STRATEGY FOR EACH DAG
     results_by_dag = []
 
@@ -94,7 +94,8 @@ def get_rates_data_array(parent_probs_by_dag, true_dags, target, strategy_names,
             # GET PARAMETERS USED BY STRATEGY
             print(strategy)
             strategy_name, n_str, b_str, k_str = strategy.split(',')
-            k = int(k_str[2:])
+            k = k_str[2:]
+            k = int(k) if k != 'None' else None
             b = int(b_str[2:])
             n = int(n_str[2:])
 
