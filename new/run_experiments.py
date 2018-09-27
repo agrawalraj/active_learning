@@ -7,15 +7,16 @@ from config import DATA_FOLDER
 import causaldag as cd
 from multiprocessing import Pool, cpu_count
 
-NUM_BOOTSTRAP_DAGS_BATCH = 50
 NUM_STARTING_SAMPLES = 250
-INTERVENTION_STRENGTH = 2
 
 parser = argparse.ArgumentParser(description='Simulate strategy for learning parent nodes in a causal DAG.')
 
 parser.add_argument('--samples', '-n', type=int, help='number of samples')
 parser.add_argument('--batches', '-b', type=int, help='number of batches allowed')
 parser.add_argument('--max_interventions', '-k', type=int, help='maximum number of interventions per batch')
+parser.add_argument('--intervention-strength', '-s', type=float,
+                    help='number of standard deviations away from mean interventions occur at')
+parser.add_argument('--boot', type=int, help='number of bootstrap samples')
 
 parser.add_argument('--folder', type=str, help='Folder containing the DAGs')
 parser.add_argument('--strategy', type=str, help='Strategy to use')
@@ -34,7 +35,7 @@ SIM_CONFIG = SimulationConfig(
     n_batches=args.batches,
     max_interventions=args.max_interventions,
     strategy=args.strategy,
-    intervention_strength=INTERVENTION_STRENGTH,
+    intervention_strength=args.intervention_strength,
     target=target
 )
 
@@ -52,14 +53,14 @@ def get_strategy(strategy, dag):
     if strategy == 'random':
         return random_nodes.random_strategy
     if strategy == 'learn-parents':
-        return learn_target_parents.create_learn_target_parents(target, NUM_BOOTSTRAP_DAGS_BATCH)
+        return learn_target_parents.create_learn_target_parents(target, args.boot)
     if strategy == 'edge-prob':
-        return edge_prob.create_edge_prob_strategy(target, NUM_BOOTSTRAP_DAGS_BATCH)
+        return edge_prob.create_edge_prob_strategy(target, args.boot)
     if strategy == 'var-score':
         node_vars = np.diag(dag.covariance)
         return var_score.create_variance_strategy(target, node_vars, [2*np.sqrt(node_var) for node_var in node_vars])
     if strategy == 'entropy':
-        return information_gain.create_info_gain_strategy(NUM_BOOTSTRAP_DAGS_BATCH, parent_functionals(target, dag.nodes))
+        return information_gain.create_info_gain_strategy(args.boot, parent_functionals(target, dag.nodes))
 
 
 folders = [
