@@ -136,6 +136,10 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
         recommended_interventions = strategy(iteration_data)
         if not sum(recommended_interventions.values()) == iteration_data.n_samples / iteration_data.n_batches:
             raise ValueError('Did not return correct amount of samples')
+        rec_interventions_nonzero = {intv_ix for intv, ns in recommended_interventions.items() if ns != 0}
+        if not len(rec_interventions_nonzero) <= simulator_config.max_interventions:
+            raise ValueError('Returned too many interventions')
+
         print(recommended_interventions)
         for intv_ix, nsamples in recommended_interventions.items():
             iv_node = intervention_set[intv_ix]
