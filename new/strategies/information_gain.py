@@ -25,11 +25,11 @@ def create_info_gain_strategy(n_boot, graph_functionals):
             if int(nsamples) != nsamples:
                 raise ValueError('n_samples / n_batches must be an integer')
             nsamples = int(nsamples)
-        # else:
-        #     nsamples = iteration_data.n_samples / (iteration_data.n_batches * iteration_data.max_interventions)
-        #     if int(nsamples) != nsamples:
-        #         raise ValueError('n_samples / (n_batches * max interventions) must be an integer')
-        #     nsamples = int(nsamples)
+        else:
+            nsamples = iteration_data.n_samples / (iteration_data.n_batches * iteration_data.max_interventions)
+            if int(nsamples) != nsamples:
+                raise ValueError('n_samples / (n_batches * max interventions) must be an integer')
+            nsamples = int(nsamples)
 
         sampled_dags = collect_dags(iteration_data.batch_folder, iteration_data.current_data, n_boot)
         gauss_dags = [graph_utils.prec2dag(iteration_data.precision_matrix, dag.topological_sort()) for dag in sampled_dags]
