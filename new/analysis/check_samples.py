@@ -18,13 +18,14 @@ def count_samples(dataset, strat_names, ks, bs, ns):
     n_dags = dataset_config['n_dags']
 
     counts = xr.DataArray(
-        np.zeros([len(strat_names), len(ks), len(bs), len(ns), n_nodes]),
-        dims=['strategy', 'k', 'b', 'n', 'intervened_node'],
+        np.zeros([len(strat_names), len(ks), len(bs), len(ns), n_dags, n_nodes]),
+        dims=['strategy', 'k', 'b', 'n', 'dag', 'intervened_node'],
         coords={
             'strategy': strat_names,
             'k': ks,
             'b': bs,
             'n': ns,
+            'dag': list(range(n_dags)),
             'intervened_node': list(range(n_nodes))
         }
     )
@@ -45,7 +46,7 @@ def count_samples(dataset, strat_names, ks, bs, ns):
                     if intervened_node != -1:
                         full_samples_fn = os.path.join(samples_folder, samples_fn)
                         nsamples = sum(1 for line in open(full_samples_fn))
-                        counts.loc[dict(strategy=strat_name, n=n, b=b, k=k, intervened_node=intervened_node)] = nsamples
+                        counts.loc[dict(strategy=strat_name, n=n, b=b, k=k, dag=dag_num, intervened_node=intervened_node)] = nsamples
 
     counts.to_netcdf(os.path.join(dataset_folder, 'counts.netcdf'))
     return counts
