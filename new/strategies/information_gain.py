@@ -20,16 +20,10 @@ def binary_entropy(probs):
 def create_info_gain_strategy(n_boot, graph_functionals):
     def info_gain_strategy(iteration_data):
         # === CALCULATE NUMBER OF SAMPLES IN EACH INTERVENTION
-        if iteration_data.max_interventions is None:
-            nsamples = iteration_data.n_samples / iteration_data.n_batches
-            if int(nsamples) != nsamples:
-                raise ValueError('n_samples / n_batches must be an integer')
-            nsamples = int(nsamples)
-        else:
-            nsamples = iteration_data.n_samples / (iteration_data.n_batches * iteration_data.max_interventions)
-            if int(nsamples) != nsamples:
-                raise ValueError('n_samples / (n_batches * max interventions) must be an integer')
-            nsamples = int(nsamples)
+        nsamples = iteration_data.n_samples / iteration_data.n_batches
+        if int(nsamples) != nsamples:
+            raise ValueError('n_samples / n_batches must be an integer')
+        nsamples = int(nsamples)
 
         sampled_dags = collect_dags(iteration_data.batch_folder, iteration_data.current_data, n_boot)
         gauss_dags = [graph_utils.prec2dag(iteration_data.precision_matrix, dag.topological_sort()) for dag in sampled_dags]
@@ -76,10 +70,9 @@ def create_info_gain_strategy(n_boot, graph_functionals):
             intervention_scores = np.zeros(len(iteration_data.interventions))
             intervention_logpdfs = np.zeros([len(iteration_data.interventions), n_boot, n_boot])
             for intv_ix in range(len(iteration_data.interventions)):
+                # current number of times this intervention has already been selected
+                datapoint_ix = selected_interventions[intv_ix]
                 for outer_dag_ix in range(n_boot):
-                    # current number of times this intervention has already been selected
-                    datapoint_ix = selected_interventions[intv_ix]
-
                     intervention_logpdfs[intv_ix, outer_dag_ix] = logpdfs.sel(
                         outer_dag=outer_dag_ix,
                         intervention_ix=intv_ix,
@@ -94,13 +87,14 @@ def create_info_gain_strategy(n_boot, graph_functionals):
                     intervention_scores[intv_ix] += functional_entropies.sum()
             # print(intervention_scores)
 
-            if iteration_data.max_interventions is None or len(selected_interventions.keys()) < iteration_data.max_interventions:
+            nonzero_interventions = [intv_ix for intv_ix, ns in selected_interventions.items() if ns != 0]
+            if iteration_data.max_interventions is None or len(nonzero_interventions) < iteration_data.max_interventions:
                 best_intervention_score = intervention_scores.min()
                 best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
             else:
-                best_intervention_score = intervention_scores[list(selected_interventions.keys())].min()
+                best_intervention_score = intervention_scores[nonzero_interventions].min()
                 best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
-                best_scoring_interventions = [iv for iv in best_scoring_interventions if iv in selected_interventions.keys()]
+                best_scoring_interventions = [iv for iv in best_scoring_interventions if iv in nonzero_interventions]
 
             selected_intv_ix = random.choice(best_scoring_interventions)
             current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]
