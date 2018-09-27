@@ -61,6 +61,8 @@ def get_strategy(strategy, dag):
         return var_score.create_variance_strategy(target, node_vars, [2*np.sqrt(node_var) for node_var in node_vars])
     if strategy == 'entropy':
         return information_gain.create_info_gain_strategy(args.boot, parent_functionals(target, dag.nodes))
+    if strategy == 'entropy-enum':
+        return information_gain.create_info_gain_strategy(args.boot, parent_functionals(target, dag.nodes), enum_combos=True)
 
 
 folders = [
