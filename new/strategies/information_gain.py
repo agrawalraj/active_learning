@@ -94,13 +94,14 @@ def create_info_gain_strategy(n_boot, graph_functionals):
                     intervention_scores[intv_ix] += functional_entropies.sum()
             # print(intervention_scores)
 
-            if iteration_data.max_interventions is None or len(selected_interventions.keys()) < iteration_data.max_interventions:
+            nonzero_interventions = [intv_ix for intv_ix, ns in selected_interventions.items() if ns != 0]
+            if iteration_data.max_interventions is None or len(nonzero_interventions) < iteration_data.max_interventions:
                 best_intervention_score = intervention_scores.min()
                 best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
             else:
-                best_intervention_score = intervention_scores[list(selected_interventions.keys())].min()
+                best_intervention_score = intervention_scores[nonzero_interventions].min()
                 best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
-                best_scoring_interventions = [iv for iv in best_scoring_interventions if iv in selected_interventions.keys()]
+                best_scoring_interventions = [iv for iv in best_scoring_interventions if iv in nonzero_interventions]
 
             selected_intv_ix = random.choice(best_scoring_interventions)
             current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]

@@ -7,7 +7,7 @@ from config import DATA_FOLDER
 import causaldag as cd
 from multiprocessing import Pool, cpu_count
 
-NUM_BOOTSTRAP_DAGS_BATCH = 100
+NUM_BOOTSTRAP_DAGS_BATCH = 50
 NUM_STARTING_SAMPLES = 250
 INTERVENTION_STRENGTH = 2
 
