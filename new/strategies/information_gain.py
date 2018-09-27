@@ -96,9 +96,12 @@ def create_info_gain_strategy(n_boot, graph_functionals):
 
             if iteration_data.max_interventions is None or len(selected_interventions.keys()) < iteration_data.max_interventions:
                 best_intervention_score = intervention_scores.min()
+                best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
             else:
                 best_intervention_score = intervention_scores[list(selected_interventions.keys())].min()
-            best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
+                best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
+                best_scoring_interventions = [iv for iv in best_scoring_interventions if iv in selected_interventions.keys()]
+
             selected_intv_ix = random.choice(best_scoring_interventions)
             current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]
             selected_interventions[selected_intv_ix] += 1
