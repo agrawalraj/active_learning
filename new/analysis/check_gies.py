@@ -40,6 +40,17 @@ def get_l1_score(parent_probs, dag, target):
     return score
 
 
+def get_l1_score(parent_probs, dag, target):
+    score = 0
+    true_parents = dag.parents[target]
+    nonparents = set(dag.nodes) - set(true_parents)
+    for parent in true_parents:
+        score += 1 - parent_probs[parent]
+    for nonparent in nonparents:
+        score += parent_probs[nonparent]
+    return score
+
+
 def get_parent_probs_by_dag(dag_folders, target, verbose=True):
     # === RECORD RESULTS OF EACH STRATEGY FOR EACH DAG
     results_by_dag = []

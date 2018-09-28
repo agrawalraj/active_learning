@@ -45,6 +45,7 @@ def create_info_gain_strategy(n_boot, graph_functionals, enum_combos=False):
         ]
 
         print('CALCULATING LOG PDFS')
+        datapoint_ixs = list(range(nsamples))
         logpdfs = xr.DataArray(
             np.zeros([n_boot, len(iteration_data.intervention_set), n_boot, nsamples]),
             dims=['outer_dag', 'intervention_ix', 'inner_dag', 'datapoint'],
@@ -52,7 +53,7 @@ def create_info_gain_strategy(n_boot, graph_functionals, enum_combos=False):
                 'outer_dag': list(range(n_boot)),
                 'intervention_ix': list(range(len(iteration_data.interventions))),
                 'inner_dag': list(range(n_boot)),
-                'datapoint': list(range(nsamples))
+                'datapoint': datapoint_ixs
             }
         )
         for outer_dag_ix in tqdm(range(n_boot), total=n_boot):
@@ -73,13 +74,14 @@ def create_info_gain_strategy(n_boot, graph_functionals, enum_combos=False):
                 intervention_logpdfs = np.zeros([len(iteration_data.interventions), n_boot, n_boot])
                 for intv_ix in range(len(iteration_data.interventions)):
                     # current number of times this intervention has already been selected
-                    datapoint_ix = selected_interventions[intv_ix]
+                    selected_datapoint_ixs = random.choices(datapoint_ixs, k=10)
                     for outer_dag_ix in range(n_boot):
                         intervention_logpdfs[intv_ix, outer_dag_ix] = logpdfs.sel(
                             outer_dag=outer_dag_ix,
                             intervention_ix=intv_ix,
-                            datapoint=datapoint_ix
-                        )
+                            datapoint=selected_datapoint_ixs
+                        ).sum(dim='datapoint')
+                        print(intervention_logpdfs)
                         new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[intv_ix, outer_dag_ix]
 
                         importance_weights = np.exp(new_logpdfs - logsumexp(new_logpdfs))
