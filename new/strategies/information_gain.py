@@ -69,7 +69,7 @@ def create_info_gain_strategy(n_boot, graph_functionals, enum_combos=False):
         if not enum_combos:
             current_logpdfs = np.zeros([n_boot, n_boot])
             selected_interventions = defaultdict(int)
-            for sample_num in range(nsamples):
+            for sample_num in tqdm(range(nsamples), total=nsamples):
                 intervention_scores = np.zeros(len(iteration_data.interventions))
                 intervention_logpdfs = np.zeros([len(iteration_data.interventions), n_boot, n_boot])
                 for intv_ix in range(len(iteration_data.interventions)):
@@ -81,7 +81,6 @@ def create_info_gain_strategy(n_boot, graph_functionals, enum_combos=False):
                             intervention_ix=intv_ix,
                             datapoint=selected_datapoint_ixs
                         ).sum(dim='datapoint')
-                        print(intervention_logpdfs)
                         new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[intv_ix, outer_dag_ix]
 
                         importance_weights = np.exp(new_logpdfs - logsumexp(new_logpdfs))
