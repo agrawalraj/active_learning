@@ -18,6 +18,93 @@ def binary_entropy(probs):
     return special.entr(probs) - special.xlog1py(1 - probs, -probs)
 
 
+def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals):
+    def info_gain_strategy(iteration_data):
+        nsamples = iteration_data.n_samples / iteration_data.n_batches
+        if int(nsamples) != nsamples:
+            raise ValueError('n_samples / n_batches must be an integer')
+        nsamples = int(nsamples)
+        cov_mat = np.linalg.inv(iteration_data.precision_matrix)
+        gauss_dags = [graph_utils.cov2dag(cov_mat, dag) for dag in dag_collection]
+
+        # == CREATE MATRIX MAPPING EACH GRAPH TO 0 or 1 FOR THE SPECIFIED FUNCTIONALS
+        functional_matrix = np.zeros([len(dag_collection), len(graph_functionals)])
+        for (dag_ix, dag), (functional_ix, functional) in itr.product(enumerate(gauss_dags), enumerate(graph_functionals)):
+            functional_matrix[dag_ix, functional_ix] = functional(dag)
+
+        # === FOR EACH GRAPH, OBTAIN SAMPLES FOR EACH INTERVENTION THAT'LL BE USED TO BUILD UP THE HYPOTHETICAL DATASET
+        print('COLLECTING DATA POINTS')
+        datapoints = [
+            [
+                dag.sample_interventional({intervened_node: intervention}, nsamples=nsamples)
+                for intervened_node, intervention in
+                zip(iteration_data.intervention_set, iteration_data.interventions)
+            ]
+            for dag in gauss_dags
+        ]
+
+        print('CALCULATING LOG PDFS')
+        datapoint_ixs = list(range(nsamples))
+        logpdfs = xr.DataArray(
+            np.zeros([len(dag_collection), len(iteration_data.intervention_set), len(dag_collection), nsamples]),
+            dims=['outer_dag', 'intervention_ix', 'inner_dag', 'datapoint'],
+            coords={
+                'outer_dag': list(range(len(dag_collection))),
+                'intervention_ix': list(range(len(iteration_data.interventions))),
+                'inner_dag': list(range(len(dag_collection))),
+                'datapoint': datapoint_ixs
+            }
+        )
+
+        for outer_dag_ix in tqdm(range(len(dag_collection)), total=len(dag_collection)):
+            for intv_ix, intervention in tqdm(enumerate(iteration_data.interventions), total=len(iteration_data.interventions)):
+                for inner_dag_ix, inner_dag in enumerate(gauss_dags):
+                    loc = dict(outer_dag=outer_dag_ix, intervention_ix=intv_ix, inner_dag=inner_dag_ix)
+                    logpdfs.loc[loc] = inner_dag.logpdf(
+                        datapoints[outer_dag_ix][intv_ix],
+                        interventions={iteration_data.intervention_set[intv_ix]: intervention}
+                    )
+
+        current_logpdfs = np.zeros([len(dag_collection), len(dag_collection)])
+        selected_interventions = defaultdict(int)
+        for sample_num in tqdm(range(nsamples), total=nsamples):
+            intervention_scores = np.zeros(len(iteration_data.interventions))
+            intervention_logpdfs = np.zeros([len(iteration_data.interventions), len(dag_collection), len(dag_collection)])
+            for intv_ix in range(len(iteration_data.interventions)):
+                selected_datapoint_ixs = random.choices(datapoint_ixs, k=10)
+                for outer_dag_ix in range(len(dag_collection)):
+                    intervention_logpdfs[intv_ix, outer_dag_ix] = logpdfs.sel(
+                        outer_dag=outer_dag_ix,
+                        intervention_ix=intv_ix,
+                        datapoint=selected_datapoint_ixs
+                    ).mean(dim='datapoint')  # TODO: is this justifiable? what am I even really doing here
+                    new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[intv_ix, outer_dag_ix]
+
+                    importance_weights = np.exp(new_logpdfs - logsumexp(new_logpdfs))
+                    functional_probabilities = (importance_weights[:, np.newaxis] * functional_matrix).sum(axis=0)
+
+                    functional_entropies = binary_entropy(functional_probabilities)
+                    intervention_scores[intv_ix] += functional_entropies.sum()
+            # print(intervention_scores)
+
+            nonzero_interventions = [intv_ix for intv_ix, ns in selected_interventions.items() if ns != 0]
+            if iteration_data.max_interventions is None or len(
+                    nonzero_interventions) < iteration_data.max_interventions:
+                best_intervention_score = intervention_scores.min()
+                best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
+            else:
+                best_intervention_score = intervention_scores[nonzero_interventions].min()
+                best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
+                best_scoring_interventions = [iv for iv in best_scoring_interventions if iv in nonzero_interventions]
+
+            selected_intv_ix = random.choice(best_scoring_interventions)
+            current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]
+            selected_interventions[selected_intv_ix] += 1
+        return selected_interventions
+
+    return info_gain_strategy
+
+
 def create_info_gain_strategy(n_boot, graph_functionals, enum_combos=False):
     def info_gain_strategy(iteration_data):
         # === CALCULATE NUMBER OF SAMPLES IN EACH INTERVENTION
