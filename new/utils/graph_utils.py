@@ -144,6 +144,31 @@ def prec2dag(prec, node_order):
     return cd.GaussDAG.from_amat(amat, variances=variances)
 
 
+def cov2dag(cov_mat, dag):
+    # See formula https://arxiv.org/pdf/1303.3216.pdf pg. 17
+    nodes = dag.nodes
+    p = len(nodes)
+    amat = np.zeros((p, p))
+    variances = np.zeros(p)
+    for node in nodes:
+        node_parents = list(dag.parents[node])
+        if len(node_parents) == 0:
+            variances[node] = cov_mat[node, node]
+        else:
+            S_k_k = cov_mat[node, node]
+            S_k_pa = cov_mat[node, node_parents]
+            S_pa_pa = cov_mat[node_parents, node_parents]
+            if len(node_parents) > 1:
+                inv_S_pa_pa = np.linalg.inv(S_pa_pa)
+            else:
+                inv_S_pa_pa = np.array(1 / S_pa_pa)
+            node_mle_coefficents = S_k_pa.dot(inv_S_pa_pa)
+            error_mle_variance = S_k_k - S_k_pa.dot(inv_S_pa_pa.dot(S_k_pa.T))
+            variances[node] = error_mle_variance
+            amat[node_parents, node] = node_mle_coefficents
+    return cd.GaussDAG.from_amat(amat, variances=variances)
+
+
 if __name__ == '__main__':
     amat1 = np.array([
         [0, 2, 3],
