@@ -25,9 +25,9 @@ def create_info_gain_strategy(n_boot, graph_functionals, enum_combos=False):
         if int(nsamples) != nsamples:
             raise ValueError('n_samples / n_batches must be an integer')
         nsamples = int(nsamples)
-
+        cov_mat = np.linalg.inv(iteration_data.precision_matrix)
         sampled_dags = collect_dags(iteration_data.batch_folder, iteration_data.current_data, n_boot)
-        gauss_dags = [graph_utils.prec2dag(iteration_data.precision_matrix, dag.topological_sort()) for dag in sampled_dags]
+        gauss_dags = [graph_utils.cov2dag(cov_mat, dag) for dag in sampled_dags]
 
         # == CREATE MATRIX MAPPING EACH GRAPH TO 0 or 1 FOR THE SPECIFIED FUNCTIONALS
         functional_matrix = np.zeros([n_boot, len(graph_functionals)])

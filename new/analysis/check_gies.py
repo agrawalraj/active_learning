@@ -29,6 +29,16 @@ def get_final_dags(strategy_folder):
     ]
     return [cd.GaussDAG.from_amat(amat) for amat in amats]
 
+def get_l1_score(parent_probs, dag, target):
+    score = 0
+    true_parents = dag.parents[target]
+    nonparents = set(dag.nodes) - set(true_parents)
+    for parent in true_parents:
+        score += 1 - parent_probs[parent]
+    for nonparent in nonparents:
+        score += parent_probs[nonparent]
+    return score
+
 
 def get_l1_score(parent_probs, dag, target):
     score = 0
