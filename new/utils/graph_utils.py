@@ -157,7 +157,7 @@ def cov2dag(cov_mat, dag):
         else:
             S_k_k = cov_mat[node, node]
             S_k_pa = cov_mat[node, node_parents]
-            S_pa_pa = cov_mat[node_parents, node_parents]
+            S_pa_pa = cov_mat[np.ix_(node_parents, node_parents)]
             if len(node_parents) > 1:
                 inv_S_pa_pa = np.linalg.inv(S_pa_pa)
             else:
