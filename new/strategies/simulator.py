@@ -114,8 +114,6 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
             intervention2=cd.ConstantIntervention(val=simulator_config.intervention_strength*std)
         ) for std in np.diag(gdag.covariance)**.5
     ]
-    del intervention_set[simulator_config.target]
-    del interventions[simulator_config.target]
 
     # === RUN STRATEGY ON EACH BATCH
     for batch in range(simulator_config.n_batches):
