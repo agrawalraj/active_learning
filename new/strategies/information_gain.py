@@ -27,6 +27,20 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals):
         cov_mat = np.linalg.inv(iteration_data.precision_matrix)
         gauss_dags = [graph_utils.cov2dag(cov_mat, dag) for dag in dag_collection]
 
+        log_gauss_dag_weights_unnorm = np.zeros(len(dag_collection))
+        for iv_node, data in iteration_data.current_data.items():
+            if iv_node == -1:
+                log_gauss_dag_weights_unnorm += np.array([gdag.logpdf(data) for gdag in gauss_dags])
+            else:
+                iv_ix = iteration_data.intervention_set.index(iv_node)
+                intervention = {iv_node: iteration_data.interventions[iv_ix]}
+                print(intervention)
+                log_gauss_dag_weights_unnorm += np.array([gdag.logpdf(data, interventions=intervention)] for gdag in gauss_dags)
+        gauss_dag_weights = np.exp(log_gauss_dag_weights_unnorm - logsumexp(log_gauss_dag_weights_unnorm))
+        print(gauss_dag_weights)
+        if not np.isclose(gauss_dag_weights.sum(), 1):
+            raise ValueError('Not correctly normalized')
+
         # == CREATE MATRIX MAPPING EACH GRAPH TO 0 or 1 FOR THE SPECIFIED FUNCTIONALS
         functional_matrix = np.zeros([len(dag_collection), len(graph_functionals)])
         for (dag_ix, dag), (functional_ix, functional) in itr.product(enumerate(gauss_dags), enumerate(graph_functionals)):
@@ -101,6 +115,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals):
             current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]
             selected_interventions[selected_intv_ix] += 1
         return selected_interventions
+
 
     return info_gain_strategy
 
@@ -233,9 +248,6 @@ def create_info_gain_strategy(n_boot, graph_functionals, enum_combos=False):
             best_combo_ixs = [combo_ix for combo_ix, score in combo2score.items() if score == best_combo_score]
             selected_combo_ix = random.choice(best_combo_ixs)
             selected_interventions = combo2selected_interventions[selected_combo_ix]
-
-
-
 
         return selected_interventions
 
