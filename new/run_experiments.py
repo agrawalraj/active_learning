@@ -72,8 +72,8 @@ def get_strategy(strategy, dag):
     if strategy == 'entropy-enum':
         return information_gain.create_info_gain_strategy(args.boot, parent_functionals(target, dag.nodes), enum_combos=True)
     if strategy == 'entropy-dag-collection':
-        base_dag = cd.DAG(nodes=dag.nodes, arcs=dag.arcs)
-        dag_collection = [cd.DAG(nodes=dag.nodes, arcs=arcs) for arcs in base_dag.cpdag().all_dags()]
+        base_dag = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
+        dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]
         return information_gain.create_info_gain_strategy_dag_collection(dag_collection, mec_functionals(dag_collection))
 
 
