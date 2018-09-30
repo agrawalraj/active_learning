@@ -7,7 +7,7 @@ from config import DATA_FOLDER
 import causaldag as cd
 from multiprocessing import Pool, cpu_count
 
-NUM_STARTING_SAMPLES = 250
+NUM_STARTING_SAMPLES = 1000
 
 parser = argparse.ArgumentParser(description='Simulate strategy for learning parent nodes in a causal DAG.')
 
@@ -49,7 +49,7 @@ def parent_functionals(target, nodes):
     return [get_parent_functional(node) for node in nodes if node != target]
 
 
-def mec_functionals(dag_collection):
+def get_mec_functionals(dag_collection):
     def get_isdag_functional(dag):
         def isdag_functional(test_dag):
             return dag.arcs == test_dag.arcs
@@ -74,7 +74,9 @@ def get_strategy(strategy, dag):
     if strategy == 'entropy-dag-collection':
         base_dag = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
         dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]
-        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, mec_functionals(dag_collection))
+        mec_functionals = get_mec_functionals(dag_collection)
+        print([m(base_dag) for m in mec_functionals])
+        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, mec_functionals)
 
 
 folders = [
