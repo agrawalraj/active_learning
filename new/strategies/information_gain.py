@@ -80,6 +80,9 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals):
                     )
 
         current_logpdfs = np.zeros([len(dag_collection), len(dag_collection)])
+        for inner_dag_ix, logpdf in enumerate(log_gauss_dag_weights_unnorm):
+            current_logpdfs[:,inner_dag_ix] = logpdf
+
         selected_interventions = defaultdict(int)
         for sample_num in tqdm(range(nsamples), total=nsamples):
             intervention_scores = np.zeros(len(iteration_data.interventions))
@@ -98,7 +101,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals):
                     functional_probabilities = (importance_weights[:, np.newaxis] * functional_matrix).sum(axis=0)
 
                     functional_entropies = binary_entropy(functional_probabilities)
-                    intervention_scores[intv_ix] += functional_entropies.sum()
+                    intervention_scores[intv_ix] += gauss_dag_weights[outer_dag_ix] * functional_entropies.sum()
             # print(intervention_scores)
 
             nonzero_interventions = [intv_ix for intv_ix, ns in selected_interventions.items() if ns != 0]
@@ -115,7 +118,6 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals):
             current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]
             selected_interventions[selected_intv_ix] += 1
         return selected_interventions
-
 
     return info_gain_strategy
 

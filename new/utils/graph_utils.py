@@ -11,6 +11,7 @@ from sksparse.cholmod import cholesky  # this has to be used instead of scipy's 
 from scipy import sparse
 import operator as op
 import causaldag as cd
+import random
 
 
 def bernoulli(p):
@@ -79,6 +80,11 @@ def generate_DAG(p, m=4, prob=0., type_='config_model'):
         G = nx.barabasi_albert_graph(p, m)
     elif type_ == 'small_world':
         G = nx.watts_strogatz_graph(p, m, prob)
+    elif type_ == 'chain':
+        source_node = random.choice(range(p))
+        arcs = {(i+1, i) for i in range(source_node)} | {(i, i+1) for i in range(source_node, p-1)}
+        print(source_node, arcs)
+        return cd.DAG(nodes=set(range(p)), arcs=arcs)
     else: 
         raise Exception('Not a graph type') 
     G = nx.Graph(G)

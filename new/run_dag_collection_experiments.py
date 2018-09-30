@@ -49,14 +49,6 @@ def parent_functionals(target, nodes):
     return [get_parent_functional(node) for node in nodes if node != target]
 
 
-def mec_functionals(dag_collection):
-    def get_isdag_functional(dag):
-        def isdag_functional(test_dag):
-            return dag.arcs == test_dag.arcs
-        return isdag_functional
-    return [get_isdag_functional(dag) for dag in dag_collection]
-
-
 def get_strategy(strategy, dag):
     if strategy == 'random':
         return random_nodes.random_strategy
@@ -71,9 +63,6 @@ def get_strategy(strategy, dag):
         return information_gain.create_info_gain_strategy(args.boot, parent_functionals(target, dag.nodes))
     if strategy == 'entropy-enum':
         return information_gain.create_info_gain_strategy(args.boot, parent_functionals(target, dag.nodes), enum_combos=True)
-    if strategy == 'entropy-dag-collection':
-        dag_collection = [cd.DAG(nodes=dag.nodes, arcs=arcs) for arcs in dag.cpdag().all_dags()]
-        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, mec_functionals(dag_collection))
 
 
 folders = [
@@ -89,4 +78,3 @@ def simulate_(tup):
 
 with Pool(cpu_count()-1) as p:
     p.map(simulate_, zip(dags, folders))
-
