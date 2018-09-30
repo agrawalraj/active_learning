@@ -45,7 +45,7 @@ class GenerationConfig:
             dags = [get_component_dag(self.n_nodes, self.edge_prob) for _ in range(self.n_dags)]
         else:
             dags = [graph_utils.generate_DAG(self.n_nodes, type_=self.graph_type) for _ in range(self.n_dags)]
-        dag_arcs = [{(i, j): graph_utils.RAND_RANGE() for i, j in dag.arcs} for dag in dags]
+        dag_arcs = [{(i, j): 1 for i, j in dag.arcs} for dag in dags]
         gdags = [cd.GaussDAG(nodes=list(range(self.n_nodes)), arcs=arcs) for arcs in dag_arcs]
 
         print('=== Saving DAGs ===')
