@@ -18,7 +18,7 @@ def binary_entropy(probs):
     return special.entr(probs) - special.xlog1py(1 - probs, -probs)
 
 
-def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals):
+def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, functional_entropy_fxns):
     def info_gain_strategy(iteration_data):
         nsamples = iteration_data.n_samples / iteration_data.n_batches
         if int(nsamples) != nsamples:
@@ -98,9 +98,10 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals):
                     new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[intv_ix, outer_dag_ix]
 
                     importance_weights = np.exp(new_logpdfs - logsumexp(new_logpdfs))
-                    functional_probabilities = (importance_weights[:, np.newaxis] * functional_matrix).sum(axis=0)
+                    # functional_probabilities = (importance_weights[:, np.newaxis] * functional_matrix).sum(axis=0)
 
-                    functional_entropies = binary_entropy(functional_probabilities)
+                    functional_entropies = [f(functional_matrix[:, f_ix], importance_weights) for f_ix, f in enumerate(functional_entropy_fxns)]
+                    # functional_entropies = binary_entropy(functional_probabilities)
                     intervention_scores[intv_ix] += gauss_dag_weights[outer_dag_ix] * functional_entropies.sum()
             # print(intervention_scores)
 
