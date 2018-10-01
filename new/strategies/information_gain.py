@@ -42,7 +42,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
             raise ValueError('Not correctly normalized')
 
         # == CREATE MATRIX MAPPING EACH GRAPH TO 0 or 1 FOR THE SPECIFIED FUNCTIONALS
-        functional_matrix = np.zeros([len(dag_collection), len(graph_functionals)])
+        functional_matrix = np.zeros([len(dag_collection), len(graph_functionals)], dtype=int)
         for (dag_ix, dag), (functional_ix, functional) in itr.product(enumerate(gauss_dags), enumerate(graph_functionals)):
             functional_matrix[dag_ix, functional_ix] = functional(dag)
 
@@ -102,7 +102,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
 
                     functional_entropies = [f(functional_matrix[:, f_ix], importance_weights) for f_ix, f in enumerate(functional_entropy_fxns)]
                     # functional_entropies = binary_entropy(functional_probabilities)
-                    intervention_scores[intv_ix] += gauss_dag_weights[outer_dag_ix] * functional_entropies.sum()
+                    intervention_scores[intv_ix] += gauss_dag_weights[outer_dag_ix] * np.sum(functional_entropies)
             # print(intervention_scores)
 
             nonzero_interventions = [intv_ix for intv_ix, ns in selected_interventions.items() if ns != 0]
