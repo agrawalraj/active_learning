@@ -155,7 +155,7 @@ def create_info_gain_strategy_dag_collection_enum(dag_collection, graph_function
         print('COLLECTING DATA POINTS')
         datapoints = [
             [
-                dag.sample_interventional({intervened_node: intervention}, nsamples=nsamples)
+                dag.sample_interventional({intervened_node: intervention}, nsamples=100)
                 for intervened_node, intervention in
                 zip(iteration_data.intervention_set, iteration_data.interventions)
             ]
@@ -165,13 +165,12 @@ def create_info_gain_strategy_dag_collection_enum(dag_collection, graph_function
         print('CALCULATING LOG PDFS')
         datapoint_ixs = list(range(nsamples))
         logpdfs = xr.DataArray(
-            np.zeros([len(dag_collection), len(iteration_data.intervention_set), len(dag_collection), nsamples]),
-            dims=['outer_dag', 'intervention_ix', 'inner_dag', 'datapoint'],
+            np.zeros([len(dag_collection), len(iteration_data.intervention_set), len(dag_collection)]),
+            dims=['outer_dag', 'intervention_ix', 'inner_dag'],
             coords={
                 'outer_dag': list(range(len(dag_collection))),
                 'intervention_ix': list(range(len(iteration_data.interventions))),
                 'inner_dag': list(range(len(dag_collection))),
-                'datapoint': datapoint_ixs
             }
         )
 
@@ -179,36 +178,36 @@ def create_info_gain_strategy_dag_collection_enum(dag_collection, graph_function
             for intv_ix, intervention in tqdm(enumerate(iteration_data.interventions), total=len(iteration_data.interventions)):
                 for inner_dag_ix, inner_dag in enumerate(gauss_dags):
                     loc = dict(outer_dag=outer_dag_ix, intervention_ix=intv_ix, inner_dag=inner_dag_ix)
-                    logpdfs.loc[loc] = inner_dag.logpdf(
+                    logpdfs.loc[loc] += inner_dag.logpdf(
                         datapoints[outer_dag_ix][intv_ix],
                         interventions={iteration_data.intervention_set[intv_ix]: intervention}
-                    )
+                    ).mean()
 
-        current_logpdfs = np.zeros([len(dag_collection), len(dag_collection)])
+        starting_logpdfs = np.zeros([len(dag_collection), len(dag_collection)])
         for inner_dag_ix, logpdf in enumerate(log_gauss_dag_weights_unnorm):
-            current_logpdfs[:,inner_dag_ix] = logpdf
-
+            starting_logpdfs[:, inner_dag_ix] = logpdf
 
         combo2score = {}
         combo2selected_interventions = {}
         for combo_ix, combo in enumerate(itr.combinations(range(len(iteration_data.intervention_set)), iteration_data.max_interventions)):
-            intervention_scores = np.zeros(len(combo))
-            intervention_logpdfs = np.zeros([len(combo), len(dag_collection), len(dag_collection)])
             selected_interventions_combo = defaultdict(int)
+            current_logpdfs = starting_logpdfs.copy()
+            tmp_ix2intv_ix = dict(enumerate(combo))
+            intv_ix2tmp_ix = {i_ix: t_ix for t_ix, i_ix in tmp_ix2intv_ix.items()}
 
             for sample_num in tqdm(range(nsamples), total=nsamples):
-                intervention_scores = np.zeros(len(iteration_data.interventions))
-                intervention_logpdfs = np.zeros(
-                    [len(iteration_data.interventions), len(dag_collection), len(dag_collection)])
-                for intv_ix in range(len(iteration_data.interventions)):
-                    selected_datapoint_ixs = random.choices(datapoint_ixs, k=10)
+                intervention_scores = np.zeros(len(combo))
+                intervention_logpdfs = np.zeros([len(combo), len(dag_collection), len(dag_collection)])
+
+                for intv_ix in combo:
+                    tmp_ix = intv_ix2tmp_ix[intv_ix]
                     for outer_dag_ix in range(len(dag_collection)):
-                        intervention_logpdfs[intv_ix, outer_dag_ix] = logpdfs.sel(
+                        intervention_logpdfs[tmp_ix, outer_dag_ix] = logpdfs.sel(
                             outer_dag=outer_dag_ix,
                             intervention_ix=intv_ix,
-                            datapoint=selected_datapoint_ixs
-                        ).mean(dim='datapoint')  # TODO: is this justifiable? what am I even really doing here
-                        new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[intv_ix, outer_dag_ix]
+                        )
+
+                        new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[tmp_ix, outer_dag_ix]
 
                         importance_weights = np.exp(new_logpdfs - logsumexp(new_logpdfs))
                         # functional_probabilities = (importance_weights[:, np.newaxis] * functional_matrix).sum(axis=0)
@@ -216,8 +215,13 @@ def create_info_gain_strategy_dag_collection_enum(dag_collection, graph_function
                         functional_entropies = [f(functional_matrix[:, f_ix], importance_weights) for f_ix, f in
                                                 enumerate(functional_entropy_fxns)]
                         # functional_entropies = binary_entropy(functional_probabilities)
-                        intervention_scores[intv_ix] += gauss_dag_weights[outer_dag_ix] * np.sum(functional_entropies)
+                        intervention_scores[tmp_ix] += gauss_dag_weights[outer_dag_ix] * np.sum(functional_entropies)
                         # print(intervention_scores)
+                best_intervention_score = intervention_scores.min()
+                best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
+                selected_intv_ix = random.choice(best_scoring_interventions)
+                current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]
+                selected_interventions_combo[tmp_ix2intv_ix[selected_intv_ix]] += 1
 
         best_combo_score = min(combo2score.items(), key=op.itemgetter(1))[1]
         best_combo_ixs = [combo_ix for combo_ix, score in combo2score.items() if score == best_combo_score]
@@ -332,13 +336,13 @@ def create_info_gain_strategy(n_boot, graph_functionals, enum_combos=False):
             for combo_ix, combo in enumerate(itr.combinations(range(len(iteration_data.intervention_set)), iteration_data.max_interventions)):
                 current_logpdfs = np.zeros([n_boot, n_boot])
                 selected_interventions_for_combo = defaultdict(int)
+                tmp_ix2intv_ix = dict(enumerate(combo))
+                intv_ix2tmp_ix = {i_ix: t_ix for t_ix, i_ix in tmp_ix2intv_ix.items()}
 
                 # for each combination of interventions, optimize greedily over samples
                 for sample_num in range(nsamples):
                     intervention_scores = np.zeros(len(combo))
                     intervention_logpdfs = np.zeros([len(combo), n_boot, n_boot])
-                    tmp_ix2intv_ix = dict(enumerate(combo))
-                    intv_ix2tmp_ix = {i_ix: t_ix for t_ix, i_ix in tmp_ix2intv_ix.items()}
 
                     for intv_ix in combo:
                         # current number of times this intervention has already been selected
