@@ -74,7 +74,7 @@ def get_k_entropy_fxn(k):
         mask = probs != 0
         plogps = np.zeros(len(probs))
         plogps[mask] = np.log2(probs[mask]) * probs[mask]
-        return plogps.sum()
+        return -plogps.sum()
 
     return get_k_entropy
 
