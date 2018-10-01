@@ -59,7 +59,7 @@ def get_mec_functionals(dag_collection):
 
 def get_mec_functional_k(dag_collection):
     def get_dag_ix_mec(dag):
-        return next(d for d in dag_collection if d.arcs == dag.arcs)
+        return next(d_ix for d_ix, d in enumerate(dag_collection) if d.arcs == dag.arcs)
     return get_dag_ix_mec
 
 
@@ -74,7 +74,7 @@ def get_k_entropy_fxn(k):
         mask = probs != 0
         plogps = np.zeros(len(probs))
         plogps[mask] = np.log2(probs[mask]) * probs[mask]
-        return plogps.sum()
+        return -plogps.sum()
 
     return get_k_entropy
 
