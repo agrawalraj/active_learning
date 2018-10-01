@@ -57,6 +57,28 @@ def get_mec_functionals(dag_collection):
     return [get_isdag_functional(dag) for dag in dag_collection]
 
 
+def get_mec_functional_k(dag_collection):
+    def get_dag_ix_mec(dag):
+        return next(d for d in dag_collection if d.arcs == dag.arcs)
+    return get_dag_ix_mec
+
+
+def get_k_entropy_fxn(k):
+    def get_k_entropy(fvals, weights):
+        # find probs
+        probs = np.zeros(k)
+        for fval, w in zip(fvals, weights):
+            probs[fval] += w
+
+        # = find entropy
+        mask = probs != 0
+        plogps = np.zeros(len(probs))
+        plogps[mask] = np.log2(probs[mask]) * probs[mask]
+        return plogps.sum()
+
+    return get_k_entropy
+
+
 def get_strategy(strategy, dag):
     if strategy == 'random':
         return random_nodes.random_strategy
@@ -74,9 +96,11 @@ def get_strategy(strategy, dag):
     if strategy == 'entropy-dag-collection':
         base_dag = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
         dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]
-        mec_functionals = get_mec_functionals(dag_collection)
-        print([m(base_dag) for m in mec_functionals])
-        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, mec_functionals)
+        # mec_functionals = get_mec_functionals(dag_collection)
+        mec_functional = get_mec_functional_k(dag_collection)
+        functional_entropies = [get_k_entropy_fxn(len(dag_collection))]
+        # print([m(base_dag) for m in mec_functionals])
+        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, [mec_functional], functional_entropies)
 
 
 folders = [
