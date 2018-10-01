@@ -149,6 +149,11 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     for i, samples in all_samples.items():
         np.savetxt(os.path.join(samples_folder, 'intervention=%d.csv' % i), samples)
 
+    # === CHECK THE TOTAL NUMBER OF SAMPLES IS CORRECT
+    nsamples_final = sum(all_samples[iv_node].shape[0] for iv_node in intervention_set + [-1])
+    if nsamples_final != simulator_config.starting_samples + simulator_config.n_samples:
+        raise ValueError('Did not use all samples')
+
     # === GET GIES SAMPLES GIVEN THE DATA FOR THIS SIMULATION
     final_samples_path = os.path.join(strategy_folder, 'final_samples.csv')
     final_interventions_path = os.path.join(strategy_folder, 'final_interventions')
