@@ -7,7 +7,7 @@ from config import DATA_FOLDER
 import causaldag as cd
 from multiprocessing import Pool, cpu_count
 
-NUM_STARTING_SAMPLES = 250
+NUM_STARTING_SAMPLES = 1000
 
 parser = argparse.ArgumentParser(description='Simulate strategy for learning parent nodes in a causal DAG.')
 
