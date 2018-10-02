@@ -120,22 +120,27 @@ def cross_entropy_interventional(gdag1, gdag2, iv_node, iv_variance):
     covariance1 = get_covariance_interventional(gdag1, iv_node, iv_variance)
     p = len(gdag1.nodes)
     kl_term = -p/2
-    kl_term += np.trace(precision2 @ covariance1)
-    logdet2 = np.sum(np.log(gdag2.variances)) - np.log(gdag2.variances[iv_node])
-    logdet1 = np.sum(np.log(gdag1.variances)) - np.log(gdag1.variances[iv_node])
+    kl_term += np.trace(precision2 @ covariance1)/2
+    logdet2 = np.sum(np.log(gdag2.variances)) - np.log(gdag2.variances[iv_node]) + np.log(iv_variance)
+    if not np.isclose(logdet2, np.log(np.linalg.det(np.linalg.inv(precision2)))):
+        print(logdet2 + np.log(iv_variance))
+        print(np.log(np.linalg.det(cov2)))
+        raise ValueError
+    logdet1 = np.sum(np.log(gdag1.variances)) - np.log(gdag1.variances[iv_node]) + np.log(iv_variance)
+
     kl_term += (logdet2 - logdet1)/2
 
-    entropy_term = np.log(2*np.pi*np.e)/2
-    entropy_term += logdet1/2 + np.log(iv_variance)
+    entropy_term = np.log(2*np.pi*np.e)/2 + logdet1/2
+    print(entropy_term == entropy_interventional(gdag1, iv_node, iv_variance))
 
     return -kl_term - entropy_term
 
 
 def entropy_interventional(gdag1, iv_node, iv_variance):
-    logdet1 = np.sum(np.log(gdag1.variances)) - np.log(gdag1.variances[iv_node])
+    logdet1 = np.sum(np.log(gdag1.variances)) - np.log(gdag1.variances[iv_node]) + np.log(iv_variance)
 
     entropy_term = np.log(2 * np.pi * np.e) / 2
-    entropy_term += logdet1 / 2 + np.log(iv_variance)
+    entropy_term += logdet1/2
     return entropy_term
 
 
@@ -239,28 +244,27 @@ if __name__ == '__main__':
     ])
     g2 = cd.GaussDAG.from_amat(amat2)
 
-    iv_variance = 100
+    iv_variance = 10
     actual = cross_entropy_interventional(g1, g2, 0, iv_variance)
-    g1_samples = g1.sample_interventional({0: cd.GaussIntervention(mean=0, variance=iv_variance)}, 1000)
+    g1_samples = g1.sample_interventional({0: cd.GaussIntervention(mean=0, variance=iv_variance)}, 100000)
     g2_logpdfs = g2.logpdf(g1_samples, {0: cd.GaussIntervention(mean=0, variance=iv_variance)})
     print('approx', g2_logpdfs.mean())
     print('actual', actual)
-    print((g2_logpdfs.mean() - actual)/np.log(2))
 
     cov1 = get_covariance_interventional(g1, 0, iv_variance)
     cov2 = get_covariance_interventional(g2, 0, iv_variance)
+
+    samples = stats.multivariate_normal(cov=cov1).rvs(100000)
+    logpdfs = stats.multivariate_normal(cov=cov2).logpdf(samples)
+    print('scipy approx', logpdfs.mean())
+
+    print(cross_entropy_interventional(g1, g1, 0, iv_variance))
+    print(entropy_interventional(g1, 0, iv_variance))
     entropy_us1 = entropy_interventional(g1, 0, iv_variance)
     entropy_us2 = entropy_interventional(g2, 0, iv_variance)
     print(entropy_us1 - entropy_us2)
 
     entropy_scipy1 = stats.multivariate_normal(cov=cov1).entropy()
     entropy_scipy2 = stats.multivariate_normal(cov=cov2).entropy()
+    print(entropy_scipy1)
     print(entropy_scipy1 - entropy_scipy2)
-    samples = stats.multivariate_normal(cov=cov1).rvs(1000)
-    logpdfs = stats.multivariate_normal(cov=cov2).logpdf(samples)
-
-    samples = np.random.multivariate_normal(cov=cov1)
-
-
-
-
