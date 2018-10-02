@@ -96,18 +96,18 @@ def generate_DAG(p, m=4, prob=0., type_='config_model'):
 
 
 def get_precision_interventional(gdag, iv_node, iv_variance):
-    adj = gdag.weight_mat
+    adj = gdag.weight_mat.copy()
     adj[:, iv_node] = 0
-    vars = gdag.variances
+    vars = gdag.variances.copy()
     vars[iv_node] = iv_variance
     id_ = np.identity(adj.shape[0])
     return (id_ - adj) @ np.diag(vars**-1) @ (id_ - adj).T
 
 
 def get_covariance_interventional(gdag, iv_node, iv_variance):
-    adj = gdag.weight_mat
+    adj = gdag.weight_mat.copy()
     adj[:, iv_node] = 0
-    vars = gdag.variances
+    vars = gdag.variances.copy()
     vars[iv_node] = iv_variance
     id_ = np.identity(adj.shape[0])
 
@@ -122,26 +122,11 @@ def cross_entropy_interventional(gdag1, gdag2, iv_node, iv_variance):
     kl_term = -p/2
     kl_term += np.trace(precision2 @ covariance1)/2
     logdet2 = np.sum(np.log(gdag2.variances)) - np.log(gdag2.variances[iv_node]) + np.log(iv_variance)
-    if not np.isclose(logdet2, np.log(np.linalg.det(np.linalg.inv(precision2)))):
-        print(logdet2 + np.log(iv_variance))
-        print(np.log(np.linalg.det(cov2)))
-        raise ValueError
     logdet1 = np.sum(np.log(gdag1.variances)) - np.log(gdag1.variances[iv_node]) + np.log(iv_variance)
-
     kl_term += (logdet2 - logdet1)/2
+    entropy_term = (np.log(2*np.pi*np.e) * p + logdet1) / 2
 
-    entropy_term = np.log(2*np.pi*np.e)/2 + logdet1/2
-    print(entropy_term == entropy_interventional(gdag1, iv_node, iv_variance))
-
-    return -kl_term - entropy_term
-
-
-def entropy_interventional(gdag1, iv_node, iv_variance):
-    logdet1 = np.sum(np.log(gdag1.variances)) - np.log(gdag1.variances[iv_node]) + np.log(iv_variance)
-
-    entropy_term = np.log(2 * np.pi * np.e) / 2
-    entropy_term += logdet1/2
-    return entropy_term
+    return -1 * (kl_term + entropy_term)
 
 
 def _load_dags(dags_path, delete=True):
@@ -244,7 +229,7 @@ if __name__ == '__main__':
     ])
     g2 = cd.GaussDAG.from_amat(amat2)
 
-    iv_variance = 10
+    iv_variance = .1
     actual = cross_entropy_interventional(g1, g2, 0, iv_variance)
     g1_samples = g1.sample_interventional({0: cd.GaussIntervention(mean=0, variance=iv_variance)}, 100000)
     g2_logpdfs = g2.logpdf(g1_samples, {0: cd.GaussIntervention(mean=0, variance=iv_variance)})
@@ -253,6 +238,9 @@ if __name__ == '__main__':
 
     cov1 = get_covariance_interventional(g1, 0, iv_variance)
     cov2 = get_covariance_interventional(g2, 0, iv_variance)
+
+    p = 3
+    .5 * (-p + np.trace(np.linalg.inv(cov2).dot(cov1)) + np.log(np.linalg.det(cov2) - np.log(np.linalg.det(cov1))) + np.log(np.linalg.det(2 * np.pi * np.e * cov1) ))
 
     samples = stats.multivariate_normal(cov=cov1).rvs(100000)
     logpdfs = stats.multivariate_normal(cov=cov2).logpdf(samples)
