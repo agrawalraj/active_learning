@@ -231,7 +231,7 @@ if __name__ == '__main__':
 
     iv_variance = .1
     actual = cross_entropy_interventional(g1, g2, 0, iv_variance)
-    g1_samples = g1.sample_interventional({0: cd.GaussIntervention(mean=0, variance=iv_variance)}, 100000)
+    g1_samples = g1.sample_interventional({0: cd.GaussIntervention(mean=0, variance=iv_variance)}, 1000000)
     g2_logpdfs = g2.logpdf(g1_samples, {0: cd.GaussIntervention(mean=0, variance=iv_variance)})
     print('approx', g2_logpdfs.mean())
     print('actual', actual)
@@ -242,15 +242,21 @@ if __name__ == '__main__':
     p = 3
     .5 * (-p + np.trace(np.linalg.inv(cov2).dot(cov1)) + np.log(np.linalg.det(cov2) - np.log(np.linalg.det(cov1))) + np.log(np.linalg.det(2 * np.pi * np.e * cov1) ))
 
-    samples = stats.multivariate_normal(cov=cov1).rvs(100000)
+    samples = stats.multivariate_normal(cov=cov1).rvs(1000000)
     logpdfs = stats.multivariate_normal(cov=cov2).logpdf(samples)
+    cd_samples = g1.sample_interventional({0: cd.GaussIntervention(mean=0, variance=iv_variance)}, 1000000)
+    logpdfs_cd_samples = stats.multivariate_normal(cov=cov2).logpdf(cd_samples)
     print('scipy approx', logpdfs.mean())
+    print('scipy approx of my samples', logpdfs_cd_samples.mean())
+
+    print(np.cov(samples, rowvar=False))
+    print(np.cov(cd_samples, rowvar=False))
 
     print(cross_entropy_interventional(g1, g1, 0, iv_variance))
-    print(entropy_interventional(g1, 0, iv_variance))
-    entropy_us1 = entropy_interventional(g1, 0, iv_variance)
-    entropy_us2 = entropy_interventional(g2, 0, iv_variance)
-    print(entropy_us1 - entropy_us2)
+    # print(entropy_interventional(g1, 0, iv_variance))
+    # entropy_us1 = entropy_interventional(g1, 0, iv_variance)
+    # entropy_us2 = entropy_interventional(g2, 0, iv_variance)
+    # print(entropy_us1 - entropy_us2)
 
     entropy_scipy1 = stats.multivariate_normal(cov=cov1).entropy()
     entropy_scipy2 = stats.multivariate_normal(cov=cov2).entropy()
@@ -278,6 +284,7 @@ if __name__ == '__main__':
         [0, 0, 0]
     ])
     g2 = cd.GaussDAG.from_amat(amat2)
+    iv_variance = .1
 
     g1_samples = g1.sample_interventional({0: cd.GaussIntervention(mean=0, variance=iv_variance)}, 100000)
     g2_logpdfs = g2.logpdf(g1_samples, {0: cd.GaussIntervention(mean=0, variance=iv_variance)})

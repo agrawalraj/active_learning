@@ -49,42 +49,55 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
             functional_matrix[dag_ix, functional_ix] = functional(dag)
 
         # === FOR EACH GRAPH, OBTAIN SAMPLES FOR EACH INTERVENTION THAT'LL BE USED TO BUILD UP THE HYPOTHETICAL DATASET
-        print('COLLECTING DATA POINTS')
-        datapoints = [
-            [
-                dag.sample_interventional({intervened_node: intervention}, nsamples=ndatapoints)
-                for intervened_node, intervention in
-                zip(iteration_data.intervention_set, iteration_data.interventions)
-            ]
-            for dag in gauss_dags
-        ]
+        # print('COLLECTING DATA POINTS')
+        # datapoints = [
+        #     [
+        #         dag.sample_interventional({intervened_node: intervention}, nsamples=ndatapoints)
+        #         for intervened_node, intervention in
+        #         zip(iteration_data.intervention_set, iteration_data.interventions)
+        #     ]
+        #     for dag in gauss_dags
+        # ]
 
-        print('CALCULATING LOG PDFS')
-        datapoint_ixs = list(range(ndatapoints))
-        logpdfs = xr.DataArray(
-            np.zeros([len(dag_collection), len(iteration_data.intervention_set), len(dag_collection), ndatapoints]),
-            dims=['outer_dag', 'intervention_ix', 'inner_dag', 'datapoint'],
+        # print('CALCULATING LOG PDFS')
+        # datapoint_ixs = list(range(ndatapoints))
+        # logpdfs = xr.DataArray(
+        #     np.zeros([len(dag_collection), len(iteration_data.intervention_set), len(dag_collection), ndatapoints]),
+        #     dims=['outer_dag', 'intervention_ix', 'inner_dag', 'datapoint'],
+        #     coords={
+        #         'outer_dag': list(range(len(dag_collection))),
+        #         'intervention_ix': list(range(len(iteration_data.interventions))),
+        #         'inner_dag': list(range(len(dag_collection))),
+        #         'datapoint': datapoint_ixs
+        #     }
+        # )
+        #
+        # for outer_dag_ix in tqdm(range(len(dag_collection)), total=len(dag_collection)):
+        #     for intv_ix, intervention in tqdm(enumerate(iteration_data.interventions), total=len(iteration_data.interventions)):
+        #         for inner_dag_ix, inner_dag in enumerate(gauss_dags):
+        #             loc = dict(outer_dag=outer_dag_ix, intervention_ix=intv_ix, inner_dag=inner_dag_ix)
+        #             logpdfs.loc[loc] = inner_dag.logpdf(
+        #                 datapoints[outer_dag_ix][intv_ix],
+        #                 interventions={iteration_data.intervention_set[intv_ix]: intervention}
+        #             )
+
+        cross_entropies = xr.DataArray(
+            np.zeros([len(dag_collection), len(iteration_data.intervention_set), len(dag_collection)]),
+            dims=['outer_dag', 'intervention_ix', 'inner_dag'],
             coords={
                 'outer_dag': list(range(len(dag_collection))),
                 'intervention_ix': list(range(len(iteration_data.interventions))),
                 'inner_dag': list(range(len(dag_collection))),
-                'datapoint': datapoint_ixs
             }
         )
-
         for outer_dag_ix in tqdm(range(len(dag_collection)), total=len(dag_collection)):
             for intv_ix, intervention in tqdm(enumerate(iteration_data.interventions), total=len(iteration_data.interventions)):
                 for inner_dag_ix, inner_dag in enumerate(gauss_dags):
                     loc = dict(outer_dag=outer_dag_ix, intervention_ix=intv_ix, inner_dag=inner_dag_ix)
-                    logpdfs.loc[loc] = inner_dag.logpdf(
-                        datapoints[outer_dag_ix][intv_ix],
-                        interventions={iteration_data.intervention_set[intv_ix]: intervention}
-                    )
-                    # gdag1 = gauss_dags[outer_dag_ix]
-                    # gdag2 = gauss_dags[inner_dag_ix]
-                    # cross_entropy = graph_utils.cross_entropy_interventional(gdag1, gdag2, iteration_data.intervention_set[intv_ix], intervention.variance)
-                    # approx_cross_entropy = logpdfs.loc[loc].mean(dim='datapoint')
-                    # print(cross_entropy, approx_cross_entropy.values)
+                    gdag1 = gauss_dags[outer_dag_ix]
+                    gdag2 = gauss_dags[inner_dag_ix]
+                    cross_entropy = graph_utils.cross_entropy_interventional(gdag1, gdag2, iteration_data.intervention_set[intv_ix], intervention.variance)
+                    cross_entropies.loc[loc] = cross_entropy
 
         current_logpdfs = np.zeros([len(dag_collection), len(dag_collection)])
         for inner_dag_ix, logpdf in enumerate(log_gauss_dag_weights_unnorm):
@@ -96,10 +109,10 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
             intervention_logpdfs = np.zeros([len(iteration_data.interventions), len(dag_collection), len(dag_collection)])
             for intv_ix in range(len(iteration_data.interventions)):
                 for outer_dag_ix in range(len(dag_collection)):
-                    intervention_logpdfs[intv_ix, outer_dag_ix] = logpdfs.sel(
+                    intervention_logpdfs[intv_ix, outer_dag_ix] = cross_entropies.sel(
                         outer_dag=outer_dag_ix,
                         intervention_ix=intv_ix,
-                    ).mean(dim='datapoint')  # TODO: is this justifiable? what am I even really doing here
+                    )
                     new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[intv_ix, outer_dag_ix]
 
                     importance_weights = np.exp(new_logpdfs - logsumexp(new_logpdfs))
@@ -108,7 +121,8 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                     functional_entropies = [f(functional_matrix[:, f_ix], importance_weights) for f_ix, f in enumerate(functional_entropy_fxns)]
                     # functional_entropies = binary_entropy(functional_probabilities)
                     intervention_scores[intv_ix] += gauss_dag_weights[outer_dag_ix] * np.sum(functional_entropies)
-            print(list(enumerate(intervention_scores)))
+            if sample_num < iteration_data.max_interventions:
+                print(list(enumerate(intervention_scores)))
 
             nonzero_interventions = [intv_ix for intv_ix, ns in selected_interventions.items() if ns != 0]
             if iteration_data.max_interventions is None or len(
@@ -124,7 +138,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
             current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]
             selected_interventions[selected_intv_ix] += 1
 
-            print(selected_interventions)
+        print(selected_interventions)
         return selected_interventions
 
     return info_gain_strategy
