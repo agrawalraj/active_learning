@@ -65,7 +65,7 @@ class SimulationConfig:
     intervention_strength: float
     starting_samples: int
     target: int
-    constant_intervention: bool = None
+    intervention_type: str
 
     def save(self, folder):
         yaml.dump(asdict(self), open(os.path.join(folder, 'sim-config.yaml'), 'w'), indent=2, default_flow_style=False)
@@ -109,19 +109,23 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
 
     # === SPECIFY INTERVENTIONAL DISTRIBUTIONS BASED ON EACH NODE'S STANDARD DEVIATION
     intervention_set = list(range(n_nodes))
-    if simulator_config.constant_intervention:
+    if simulator_config.intervention_type == 'node-variance':
         interventions = [
             cd.BinaryIntervention(
                 intervention1=cd.ConstantIntervention(val=-simulator_config.intervention_strength),
                 intervention2=cd.ConstantIntervention(val=simulator_config.intervention_strength)
             ) for _ in intervention_set
         ]
-    else:
+    elif simulator_config.intervention_type == 'constant-all':
         interventions = [
             cd.BinaryIntervention(
                 intervention1=cd.ConstantIntervention(val=-simulator_config.intervention_strength*std),
                 intervention2=cd.ConstantIntervention(val=simulator_config.intervention_strength*std)
             ) for std in np.diag(gdag.covariance)**.5
+        ]
+    elif simulator_config.intervention_type == 'gauss':
+        interventions = [
+            cd.GaussIntervention(mean=0, variance=simulator_config.intervention_strength) for _ in intervention_set
         ]
 
     # === RUN STRATEGY ON EACH BATCH

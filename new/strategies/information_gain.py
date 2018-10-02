@@ -24,7 +24,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
         if int(nsamples) != nsamples:
             raise ValueError('n_samples / n_batches must be an integer')
         nsamples = int(nsamples)
-        ndatapoints = 100000
+        ndatapoints = 100
 
         cov_mat = np.linalg.inv(iteration_data.precision_matrix)
         gauss_dags = [graph_utils.cov2dag(cov_mat, dag) for dag in dag_collection]
@@ -80,6 +80,11 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                         datapoints[outer_dag_ix][intv_ix],
                         interventions={iteration_data.intervention_set[intv_ix]: intervention}
                     )
+                    # gdag1 = gauss_dags[outer_dag_ix]
+                    # gdag2 = gauss_dags[inner_dag_ix]
+                    # cross_entropy = graph_utils.cross_entropy_interventional(gdag1, gdag2, iteration_data.intervention_set[intv_ix], intervention.variance)
+                    # approx_cross_entropy = logpdfs.loc[loc].mean(dim='datapoint')
+                    # print(cross_entropy, approx_cross_entropy.values)
 
         current_logpdfs = np.zeros([len(dag_collection), len(dag_collection)])
         for inner_dag_ix, logpdf in enumerate(log_gauss_dag_weights_unnorm):

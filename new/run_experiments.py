@@ -17,7 +17,7 @@ parser.add_argument('--max_interventions', '-k', type=int, help='maximum number 
 parser.add_argument('--intervention-strength', '-s', type=float,
                     help='number of standard deviations away from mean interventions occur at')
 parser.add_argument('--boot', type=int, help='number of bootstrap samples')
-parser.add_argument('--constant-intervention', type=bool)
+parser.add_argument('--intervention-type', '-i', type=str)
 
 parser.add_argument('--folder', type=str, help='Folder containing the DAGs')
 parser.add_argument('--strategy', type=str, help='Strategy to use')
@@ -38,7 +38,7 @@ SIM_CONFIG = SimulationConfig(
     strategy=args.strategy,
     intervention_strength=args.intervention_strength,
     target=target,
-    constant_intervention=args.constant_intervention
+    intervention_type=args.intervention_type if args.intervention_type is not None else 'gauss'
 )
 
 

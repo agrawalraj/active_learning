@@ -95,6 +95,50 @@ def generate_DAG(p, m=4, prob=0., type_='config_model'):
     return dag
 
 
+def get_precision_interventional(gdag, iv_node, iv_variance):
+    adj = gdag.weight_mat
+    adj[:, iv_node] = 0
+    vars = gdag.variances
+    vars[iv_node] = iv_variance
+    id_ = np.identity(adj.shape[0])
+    return (id_ - adj) @ np.diag(vars**-1) @ (id_ - adj).T
+
+
+def get_covariance_interventional(gdag, iv_node, iv_variance):
+    adj = gdag.weight_mat
+    adj[:, iv_node] = 0
+    vars = gdag.variances
+    vars[iv_node] = iv_variance
+    id_ = np.identity(adj.shape[0])
+
+    id_min_adj_inv = np.linalg.inv(id_ - adj)
+    return id_min_adj_inv.T @ np.diag(vars) @ id_min_adj_inv
+
+
+def cross_entropy_interventional(gdag1, gdag2, iv_node, iv_variance):
+    precision2 = get_precision_interventional(gdag2, iv_node, iv_variance)
+    covariance1 = get_covariance_interventional(gdag1, iv_node, iv_variance)
+    p = len(gdag1.nodes)
+    kl_term = -p/2
+    kl_term += np.trace(precision2 @ covariance1)
+    logdet2 = np.sum(np.log(gdag2.variances)) - np.log(gdag2.variances[iv_node])
+    logdet1 = np.sum(np.log(gdag1.variances)) - np.log(gdag1.variances[iv_node])
+    kl_term += (logdet2 - logdet1)/2
+
+    entropy_term = np.log(2*np.pi*np.e)/2
+    entropy_term += logdet1/2 + np.log(iv_variance)
+
+    return -kl_term - entropy_term
+
+
+def entropy_interventional(gdag1, iv_node, iv_variance):
+    logdet1 = np.sum(np.log(gdag1.variances)) - np.log(gdag1.variances[iv_node])
+
+    entropy_term = np.log(2 * np.pi * np.e) / 2
+    entropy_term += logdet1 / 2 + np.log(iv_variance)
+    return entropy_term
+
+
 def _load_dags(dags_path, delete=True):
     """
     Helper function to load the DAGs generated in R
@@ -176,38 +220,47 @@ def cov2dag(cov_mat, dag):
 
 
 if __name__ == '__main__':
+    import numpy as np
+    import causaldag as cd
+    from utils.graph_utils import cross_entropy_interventional, get_covariance_interventional, get_precision_interventional
+    from scipy import stats
+
     amat1 = np.array([
         [0, 2, 3],
         [0, 0, 5],
         [0, 0, 0]
     ])
-    g1 = cd.GaussDAG.from_amat(amat1)
-    prec = g1.precision
-    g1_ = prec2dag(prec, [0, 1, 2])
-    print(g1_.to_amat())
+    g1 = cd.GaussDAG.from_amat(amat1, variances=[2, 2, 2])
 
-    g2 = prec2dag(prec, [0, 2, 1])
-    print(g2.to_amat())
-    print(g2.variances)
-    print(g2.precision == g1.precision)
+    amat2 = np.array([
+        [0, 3, 3],
+        [0, 0, 5],
+        [0, 0, 0]
+    ])
+    g2 = cd.GaussDAG.from_amat(amat2)
 
-    g3 = prec2dag(prec, [1, 0, 2])
-    print(g3.to_amat())
-    print(g3.variances)
-    print(g3.precision == g1.precision)
+    iv_variance = 100
+    actual = cross_entropy_interventional(g1, g2, 0, iv_variance)
+    g1_samples = g1.sample_interventional({0: cd.GaussIntervention(mean=0, variance=iv_variance)}, 1000)
+    g2_logpdfs = g2.logpdf(g1_samples, {0: cd.GaussIntervention(mean=0, variance=iv_variance)})
+    print('approx', g2_logpdfs.mean())
+    print('actual', actual)
+    print((g2_logpdfs.mean() - actual)/np.log(2))
 
-    g4 = prec2dag(prec, [1, 2, 0])
-    print(g4.to_amat())
-    print(g4.variances)
-    print(g4.precision == g1.precision)
+    cov1 = get_covariance_interventional(g1, 0, iv_variance)
+    cov2 = get_covariance_interventional(g2, 0, iv_variance)
+    entropy_us1 = entropy_interventional(g1, 0, iv_variance)
+    entropy_us2 = entropy_interventional(g2, 0, iv_variance)
+    print(entropy_us1 - entropy_us2)
 
-    g5 = prec2dag(prec, [2, 0, 1])
-    print(g5.to_amat())
-    print(g5.variances)
-    print(g5.precision == g1.precision)
+    entropy_scipy1 = stats.multivariate_normal(cov=cov1).entropy()
+    entropy_scipy2 = stats.multivariate_normal(cov=cov2).entropy()
+    print(entropy_scipy1 - entropy_scipy2)
+    samples = stats.multivariate_normal(cov=cov1).rvs(1000)
+    logpdfs = stats.multivariate_normal(cov=cov2).logpdf(samples)
 
-    g6 = prec2dag(prec, [2, 1, 0])
-    print(g6.to_amat())
-    print(g6.variances)
-    print(g6.precision == g1.precision)
+    samples = np.random.multivariate_normal(cov=cov1)
+
+
+
 
