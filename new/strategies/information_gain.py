@@ -109,6 +109,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
         for inner_dag_ix, logpdf in enumerate(log_gauss_dag_weights_unnorm):
             current_logpdfs[:,inner_dag_ix] = logpdf
 
+        print(list(enumerate([g.arcs for g in gauss_dags])))
         selected_interventions = defaultdict(int)
         for sample_num in tqdm(range(nsamples), total=nsamples):
             intervention_scores = np.zeros(len(iteration_data.interventions))
@@ -118,7 +119,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                     intervention_logpdfs[intv_ix, outer_dag_ix] = cross_entropies.sel(
                         outer_dag=outer_dag_ix,
                         intervention_ix=intv_ix,
-                    )
+                    )*10
                     # print(outer_dag_ix, intv_ix)
                     # print(intervention_logpdfs[intv_ix, outer_dag_ix])
                     new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[intv_ix, outer_dag_ix]
