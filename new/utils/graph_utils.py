@@ -256,3 +256,41 @@ if __name__ == '__main__':
     entropy_scipy2 = stats.multivariate_normal(cov=cov2).entropy()
     print(entropy_scipy1)
     print(entropy_scipy1 - entropy_scipy2)
+
+    g2.logpdf(samples)
+
+    ############### TEST I MENTIONED ON FACEBOOK ###############
+    import numpy as np
+    import causaldag as cd
+    from utils.graph_utils import cross_entropy_interventional, get_covariance_interventional, get_precision_interventional
+    from scipy import stats
+
+    amat1 = np.array([
+        [0, 2, 3],
+        [0, 0, 5],
+        [0, 0, 0]
+    ])
+    g1 = cd.GaussDAG.from_amat(amat1, variances=[2, 2, 2])
+
+    amat2 = np.array([
+        [0, 3, 3],
+        [0, 0, 5],
+        [0, 0, 0]
+    ])
+    g2 = cd.GaussDAG.from_amat(amat2)
+
+    g1_samples = g1.sample_interventional({0: cd.GaussIntervention(mean=0, variance=iv_variance)}, 100000)
+    g2_logpdfs = g2.logpdf(g1_samples, {0: cd.GaussIntervention(mean=0, variance=iv_variance)})
+
+    cov1 = get_covariance_interventional(g1, 0, iv_variance)
+    cov2 = get_covariance_interventional(g2, 0, iv_variance)
+
+    samples = stats.multivariate_normal(cov=cov1).rvs(100000)
+    logpdfs = stats.multivariate_normal(cov=cov2).logpdf(samples)
+
+    avg_using_causal_dag_sampler = np.mean(stats.multivariate_normal(cov=cov2).logpdf(g1_samples)) 
+    avg_using_scipy_sampler = np.mean(stats.multivariate_normal(cov=cov2).logpdf(samples))
+
+    print(avg_using_causal_dag_sampler - avg_using_scipy_sampler)
+
+
