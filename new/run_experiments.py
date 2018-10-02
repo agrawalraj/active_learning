@@ -102,7 +102,9 @@ def get_strategy(strategy, dag):
         mec_functional = get_mec_functional_k(dag_collection)
         functional_entropies = [get_k_entropy_fxn(len(dag_collection))]
         # print([m(base_dag) for m in mec_functionals])
-        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, [mec_functional], functional_entropies)
+
+        gauss_iv = args.intervention_type == 'gauss'
+        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, [mec_functional], functional_entropies, gauss_iv)
     if strategy == 'entropy-dag-collection-enum':
         base_dag = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
         dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]

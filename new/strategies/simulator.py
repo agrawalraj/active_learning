@@ -112,16 +112,16 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     if simulator_config.intervention_type == 'node-variance':
         interventions = [
             cd.BinaryIntervention(
-                intervention1=cd.ConstantIntervention(val=-simulator_config.intervention_strength),
-                intervention2=cd.ConstantIntervention(val=simulator_config.intervention_strength)
-            ) for _ in intervention_set
+                intervention1=cd.ConstantIntervention(val=-simulator_config.intervention_strength * std),
+                intervention2=cd.ConstantIntervention(val=simulator_config.intervention_strength * std)
+            ) for std in np.diag(gdag.covariance) ** .5
         ]
     elif simulator_config.intervention_type == 'constant-all':
         interventions = [
             cd.BinaryIntervention(
-                intervention1=cd.ConstantIntervention(val=-simulator_config.intervention_strength*std),
-                intervention2=cd.ConstantIntervention(val=simulator_config.intervention_strength*std)
-            ) for std in np.diag(gdag.covariance)**.5
+                intervention1=cd.ConstantIntervention(val=-simulator_config.intervention_strength),
+                intervention2=cd.ConstantIntervention(val=simulator_config.intervention_strength)
+            ) for _ in intervention_set
         ]
     elif simulator_config.intervention_type == 'gauss':
         interventions = [
