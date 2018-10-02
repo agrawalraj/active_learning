@@ -18,6 +18,8 @@ parser.add_argument('--intervention-strength', '-s', type=float,
                     help='number of standard deviations away from mean interventions occur at')
 parser.add_argument('--boot', type=int, help='number of bootstrap samples')
 parser.add_argument('--intervention-type', '-i', type=str)
+parser.add_argument('--mbsize', '-m', type=int, help='Minibatch size')
+parser.add_argument('--verbose', '-v', type=bool, help='Minibatch size')
 
 parser.add_argument('--folder', type=str, help='Folder containing the DAGs')
 parser.add_argument('--strategy', type=str, help='Strategy to use')
@@ -104,7 +106,7 @@ def get_strategy(strategy, dag):
         # print([m(base_dag) for m in mec_functionals])
 
         gauss_iv = args.intervention_type == 'gauss'
-        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, [mec_functional], functional_entropies, gauss_iv)
+        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, [mec_functional], functional_entropies, gauss_iv, args.mbsize, verbose=args.verbose)
     if strategy == 'entropy-dag-collection-enum':
         base_dag = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
         dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]

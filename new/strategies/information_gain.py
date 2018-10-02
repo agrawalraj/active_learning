@@ -18,7 +18,7 @@ def binary_entropy(probs):
     return special.entr(probs) - special.xlog1py(1 - probs, -probs)
 
 
-def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, functional_entropy_fxns, gauss_iv=True):
+def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, functional_entropy_fxns, gauss_iv=True, minibatch_size=10, multiplier=1000, verbose=False):
     def info_gain_strategy(iteration_data):
         nsamples = iteration_data.n_samples / iteration_data.n_batches
         if int(nsamples) != nsamples:
@@ -39,7 +39,6 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                 print(intervention)
                 log_gauss_dag_weights_unnorm += np.array([gdag.logpdf(data, interventions=intervention).sum(axis=0) for gdag in gauss_dags])
         gauss_dag_weights = np.exp(log_gauss_dag_weights_unnorm - logsumexp(log_gauss_dag_weights_unnorm))
-        print(gauss_dag_weights)
         if not np.isclose(gauss_dag_weights.sum(), 1):
             raise ValueError('Not correctly normalized')
 
@@ -102,24 +101,35 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                             interventions={iteration_data.intervention_set[intv_ix]: intervention}
                         )
             cross_entropies = logpdfs.mean(dim='datapoint')
-            print('cross entropies')
-            print(cross_entropies.shape)
 
         current_logpdfs = np.zeros([len(dag_collection), len(dag_collection)])
         for inner_dag_ix, logpdf in enumerate(log_gauss_dag_weights_unnorm):
             current_logpdfs[:,inner_dag_ix] = logpdf
 
-        print(list(enumerate([g.arcs for g in gauss_dags])))
         selected_interventions = defaultdict(int)
-        for sample_num in tqdm(range(nsamples), total=nsamples):
+
+        num_minibatches = int(np.ceil(nsamples/minibatch_size))
+        mbsizes = [
+            minibatch_size if m_num != num_minibatches-1 else nsamples-(num_minibatches-1)*minibatch_size
+            for m_num in range(num_minibatches)
+        ]
+
+        print('ALLOCATING SAMPLES')
+        for minibatch_num, mbsize in tqdm(zip(range(num_minibatches), mbsizes), total=num_minibatches):
             intervention_scores = np.zeros(len(iteration_data.interventions))
             intervention_logpdfs = np.zeros([len(iteration_data.interventions), len(dag_collection), len(dag_collection)])
-            for intv_ix in range(len(iteration_data.interventions)):
+            nonzero_interventions = [intv_ix for intv_ix, ns in selected_interventions.items() if ns != 0]
+            if iteration_data.max_interventions is not None and len(nonzero_interventions) >= iteration_data.max_interventions:
+                intv_ixs_to_consider = nonzero_interventions
+            else:
+                intv_ixs_to_consider = range(len(iteration_data.interventions))
+
+            for intv_ix in intv_ixs_to_consider:
                 for outer_dag_ix in range(len(dag_collection)):
                     intervention_logpdfs[intv_ix, outer_dag_ix] = cross_entropies.sel(
                         outer_dag=outer_dag_ix,
                         intervention_ix=intv_ix,
-                    )*10
+                    )*mbsize*multiplier
                     # print(outer_dag_ix, intv_ix)
                     # print(intervention_logpdfs[intv_ix, outer_dag_ix])
                     new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[intv_ix, outer_dag_ix]
@@ -131,23 +141,21 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                     functional_entropies = [f(functional_matrix[:, f_ix], importance_weights) for f_ix, f in enumerate(functional_entropy_fxns)]
                     # functional_entropies = binary_entropy(functional_probabilities)
                     intervention_scores[intv_ix] += gauss_dag_weights[outer_dag_ix] * np.sum(functional_entropies)
-            print(list(enumerate(intervention_scores)))
+            if verbose:
+                print('INTERVENTION SCORES, MINIBATCH %s' % minibatch_num)
+                print(list(enumerate(intervention_scores)))
 
-            nonzero_interventions = [intv_ix for intv_ix, ns in selected_interventions.items() if ns != 0]
-            if iteration_data.max_interventions is None or len(
-                    nonzero_interventions) < iteration_data.max_interventions:
-                best_intervention_score = intervention_scores.min()
-                best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
-            else:
-                best_intervention_score = intervention_scores[nonzero_interventions].min()
-                best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
-                best_scoring_interventions = [iv for iv in best_scoring_interventions if iv in nonzero_interventions]
+            best_intervention_score = intervention_scores[intv_ixs_to_consider].min()
+            best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
+            best_scoring_interventions = [iv for iv in best_scoring_interventions if iv in intv_ixs_to_consider]
 
             selected_intv_ix = random.choice(best_scoring_interventions)
-            current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]
-            selected_interventions[selected_intv_ix] += 1
+            current_logpdfs = current_logpdfs + intervention_logpdfs[selected_intv_ix]/multiplier
+            selected_interventions[selected_intv_ix] += mbsize
 
-            print(selected_interventions)
+            if verbose:
+                print('SELECTED INTERVENTIONS')
+                print(dict(selected_interventions))
         return selected_interventions
 
     return info_gain_strategy
