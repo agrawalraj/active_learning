@@ -81,7 +81,7 @@ def generate_DAG(p, m=4, prob=0., type_='config_model'):
     elif type_ == 'small_world':
         G = nx.watts_strogatz_graph(p, m, prob)
     elif type_ == 'chain':
-        source_node = int(np.ceil(p/2))
+        source_node = int(np.ceil(p/2)) - 1
         arcs = {(i+1, i) for i in range(source_node)} | {(i, i+1) for i in range(source_node, p-1)}
         print(source_node, arcs)
         return cd.DAG(nodes=set(range(p)), arcs=arcs)

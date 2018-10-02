@@ -17,6 +17,7 @@ parser.add_argument('--max_interventions', '-k', type=int, help='maximum number 
 parser.add_argument('--intervention-strength', '-s', type=float,
                     help='number of standard deviations away from mean interventions occur at')
 parser.add_argument('--boot', type=int, help='number of bootstrap samples')
+parser.add_argument('--constant-intervention', type=bool)
 
 parser.add_argument('--folder', type=str, help='Folder containing the DAGs')
 parser.add_argument('--strategy', type=str, help='Strategy to use')
@@ -36,7 +37,8 @@ SIM_CONFIG = SimulationConfig(
     max_interventions=args.max_interventions,
     strategy=args.strategy,
     intervention_strength=args.intervention_strength,
-    target=target
+    target=target,
+    constant_intervention=args.constant_intervention
 )
 
 
@@ -106,6 +108,7 @@ def get_strategy(strategy, dag):
         dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]
         # mec_functionals = get_mec_functionals(dag_collection)
         mec_functional = get_mec_functional_k(dag_collection)
+
         functional_entropies = [get_k_entropy_fxn(len(dag_collection))]
         # print([m(base_dag) for m in mec_functionals])
         return information_gain.create_info_gain_strategy_dag_collection_enum(dag_collection, [mec_functional], functional_entropies)
