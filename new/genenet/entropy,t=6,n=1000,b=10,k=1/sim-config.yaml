@@ -1,8 +1,0 @@
-intervention_strength: 1
-intervention_type: gauss
-max_interventions: 1
-n_batches: 10
-n_samples: 1000
-starting_samples: 100
-strategy: entropy
-target: 6
