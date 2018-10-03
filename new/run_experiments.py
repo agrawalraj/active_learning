@@ -7,7 +7,7 @@ from config import DATA_FOLDER
 import causaldag as cd
 from multiprocessing import Pool, cpu_count
 
-NUM_STARTING_SAMPLES = 1000
+NUM_STARTING_SAMPLES = 10000
 
 parser = argparse.ArgumentParser(description='Simulate strategy for learning parent nodes in a causal DAG.')
 
@@ -126,6 +126,8 @@ folders = [
 
 def simulate_(tup):
     dag, folder = tup
+    print('SIMULATING FOR DAG:')
+    print(dag.arcs)
     simulate(get_strategy(args.strategy, dag), SIM_CONFIG, dag, folder)
 
 

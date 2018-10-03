@@ -4,7 +4,7 @@ import xarray as xr
 import numpy as np
 import itertools as itr
 from collections import defaultdict
-from scipy.misc import logsumexp
+from scipy.special import logsumexp
 from scipy import special
 import random
 from tqdm import tqdm
@@ -18,7 +18,7 @@ def binary_entropy(probs):
     return special.entr(probs) - special.xlog1py(1 - probs, -probs)
 
 
-def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, functional_entropy_fxns, gauss_iv=True, minibatch_size=10, multiplier=1000, verbose=False):
+def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, functional_entropy_fxns, gauss_iv=True, minibatch_size=10, multiplier=1, verbose=False):
     def info_gain_strategy(iteration_data):
         nsamples = iteration_data.n_samples / iteration_data.n_batches
         if int(nsamples) != nsamples:
@@ -31,21 +31,22 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
 
         print('COMPUTING PRIORS')
         log_gauss_dag_weights_unnorm = np.zeros(len(dag_collection))
+        prior_logpdfs = np.array([gdag.logpdf(iteration_data.current_data[-1]).sum(axis=0) for gdag in gauss_dags])
+        log_gauss_dag_weights_unnorm += prior_logpdfs
         for iv_node, data in iteration_data.current_data.items():
-            if iv_node == -1:
-                log_gauss_dag_weights_unnorm += np.array([gdag.logpdf(data).sum(axis=0) for gdag in gauss_dags])
-            else:
+            if iv_node != -1 and data.shape[0] != 0:
                 iv_ix = iteration_data.intervention_set.index(iv_node)
                 intervention = {iv_node: iteration_data.interventions[iv_ix]}
-                log_gauss_dag_weights_unnorm += np.array([gdag.logpdf(data, interventions=intervention).sum(axis=0) for gdag in gauss_dags])
+                logpdfs = np.array([gdag.logpdf(data, interventions=intervention).sum(axis=0) for gdag in gauss_dags])
+                log_gauss_dag_weights_unnorm += logpdfs
+
         gauss_dag_weights = np.exp(log_gauss_dag_weights_unnorm - logsumexp(log_gauss_dag_weights_unnorm))
         if verbose:
             print('PRIORS:')
-            for gauss_dag, weight in zip(gauss_dags, gauss_dag_weights):
+            for gauss_dag, weight, unnorm_w in zip(gauss_dags, gauss_dag_weights, log_gauss_dag_weights_unnorm):
+                print('================')
                 print(gauss_dag.arcs)
-                print(weight)
-            print('DATA:')
-            print({iv_node: data.shape for iv_node, data in iteration_data.current_data.items()})
+                print('prob', weight)
         if not np.isclose(gauss_dag_weights.sum(), 1):
             raise ValueError('Not correctly normalized')
 
@@ -148,9 +149,9 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                     functional_entropies = [f(functional_matrix[:, f_ix], importance_weights) for f_ix, f in enumerate(functional_entropy_fxns)]
                     # functional_entropies = binary_entropy(functional_probabilities)
                     intervention_scores[intv_ix] += gauss_dag_weights[outer_dag_ix] * np.sum(functional_entropies)
-            if verbose:
-                print('INTERVENTION SCORES, MINIBATCH %s' % minibatch_num)
-                print(list(zip(intv_ixs_to_consider, intervention_scores[intv_ixs_to_consider])))
+            # if verbose:
+            #     print('INTERVENTION SCORES, MINIBATCH %s' % minibatch_num)
+            #     print(list(zip(intv_ixs_to_consider, intervention_scores[intv_ixs_to_consider])))
 
             best_intervention_score = intervention_scores[intv_ixs_to_consider].min()
             best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
@@ -430,4 +431,63 @@ def create_info_gain_strategy(n_boot, graph_functionals, enum_combos=False):
         return selected_interventions
 
     return info_gain_strategy
+
+
+if __name__ == '__main__':
+    import causaldag as cd
+    from dataclasses import dataclass
+    from typing import Any, Dict
+
+    @dataclass
+    class IterationData:
+        current_data: Dict[Any, np.array]
+        max_interventions: int
+        n_samples: int
+        batch_num: int
+        n_batches: int
+        intervention_set: list
+        interventions: list
+        batch_folder: str
+        precision_matrix: np.ndarray
+
+
+    def get_mec_functional_k(dag_collection):
+        def get_dag_ix_mec(dag):
+            return next(d_ix for d_ix, d in enumerate(dag_collection) if d.arcs == dag.arcs)
+
+        return get_dag_ix_mec
+
+
+    def get_k_entropy_fxn(k):
+        def get_k_entropy(fvals, weights):
+            # find probs
+            probs = np.zeros(k)
+            for fval, w in zip(fvals, weights):
+                probs[fval] += w
+
+            # = find entropy
+            mask = probs != 0
+            plogps = np.zeros(len(probs))
+            plogps[mask] = np.log2(probs[mask]) * probs[mask]
+            return -plogps.sum()
+
+        return get_k_entropy
+
+    g = cd.GaussDAG(nodes=[0,1,2], arcs={(0,1), (1,2)})
+    mec = [cd.DAG(arcs=arcs) for arcs in cd.DAG(arcs=g.arcs).cpdag().all_dags()]
+    strat = create_info_gain_strategy_dag_collection(mec, [get_mec_functional_k(mec)], [get_k_entropy_fxn(len(mec))], verbose=True)
+    sel_interventions = strat(
+        IterationData(
+            current_data={-1: g.sample(1000), 1: g.sample_interventional({1: cd.GaussIntervention()}, 500)},
+            max_interventions=1,
+            n_samples=500,
+            batch_num=0,
+            n_batches=1,
+            intervention_set=[0, 1, 2],
+            interventions=[cd.GaussIntervention() for _ in range(3)],
+            batch_folder='test_sanity',
+            precision_matrix=g.precision
+        )
+    )
+
 
