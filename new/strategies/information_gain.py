@@ -41,7 +41,9 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
         gauss_dag_weights = np.exp(log_gauss_dag_weights_unnorm - logsumexp(log_gauss_dag_weights_unnorm))
         if verbose:
             print('PRIORS:')
-            print(gauss_dag_weights)
+            for gauss_dag, weight in zip(gauss_dags, gauss_dag_weights):
+                print(gauss_dag.arcs)
+                print(weight)
             print('DATA:')
             print({iv_node: data.shape for iv_node, data in iteration_data.current_data.items()})
         if not np.isclose(gauss_dag_weights.sum(), 1):
