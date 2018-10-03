@@ -29,6 +29,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
         cov_mat = np.linalg.inv(iteration_data.precision_matrix)
         gauss_dags = [graph_utils.cov2dag(cov_mat, dag) for dag in dag_collection]
 
+        print('COMPUTING PRIORS')
         log_gauss_dag_weights_unnorm = np.zeros(len(dag_collection))
         for iv_node, data in iteration_data.current_data.items():
             if iv_node == -1:
@@ -38,6 +39,9 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                 intervention = {iv_node: iteration_data.interventions[iv_ix]}
                 log_gauss_dag_weights_unnorm += np.array([gdag.logpdf(data, interventions=intervention).sum(axis=0) for gdag in gauss_dags])
         gauss_dag_weights = np.exp(log_gauss_dag_weights_unnorm - logsumexp(log_gauss_dag_weights_unnorm))
+        if verbose:
+            print('PRIORS:')
+            print(gauss_dag_weights)
         if not np.isclose(gauss_dag_weights.sum(), 1):
             raise ValueError('Not correctly normalized')
 
@@ -142,7 +146,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                     intervention_scores[intv_ix] += gauss_dag_weights[outer_dag_ix] * np.sum(functional_entropies)
             if verbose:
                 print('INTERVENTION SCORES, MINIBATCH %s' % minibatch_num)
-                print(list(enumerate(intervention_scores)))
+                print(list(zip(intv_ixs_to_consider, intervention_scores[intv_ixs_to_consider])))
 
             best_intervention_score = intervention_scores[intv_ixs_to_consider].min()
             best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
