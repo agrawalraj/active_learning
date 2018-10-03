@@ -1,7 +1,7 @@
 backcall==0.1.0
 bleach==2.1.4
 boto==2.49.0
-causaldag==0.1a30
+causaldag==0.1a37
 cycler==0.10.0
 dataclasses==0.6
 decorator==4.3.0
@@ -42,12 +42,14 @@ pytz==2018.4
 PyYAML==3.12
 pyzmq==17.1.2
 qtconsole==4.4.1
+scikit-learn==0.20.0
 scikit-sparse==0.4.3
 scipy==1.1.0
 seaborn==0.9.0
 Send2Trash==1.5.0
 simplegeneric==0.8.1
 six==1.11.0
+sklearn==0.0
 terminado==0.8.1
 testpath==0.3.1
 tornado==5.1.1
