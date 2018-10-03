@@ -7,6 +7,7 @@ dataclasses==0.6
 decorator==4.3.0
 defusedxml==0.5.0
 entrypoints==0.2.3
+graphviz==0.9
 html5lib==1.0.1
 ipykernel==4.9.0
 ipython==6.5.0
@@ -35,7 +36,9 @@ pickleshare==0.7.5
 prometheus-client==0.3.1
 prompt-toolkit==1.0.15
 ptyprocess==0.6.0
+pydot==1.2.4
 Pygments==2.2.0
+pygraphviz==1.5
 pyparsing==2.2.0
 python-dateutil==2.7.3
 pytz==2018.4
