@@ -85,6 +85,8 @@ def generate_DAG(p, m=4, prob=0., type_='config_model'):
         arcs = {(i+1, i) for i in range(source_node)} | {(i, i+1) for i in range(source_node, p-1)}
         print(source_node, arcs)
         return cd.DAG(nodes=set(range(p)), arcs=arcs)
+    elif type_ == 'chain_one_direction':
+        return cd.DAG(nodes=set(range(p)), arcs={(i, i+1) for i in range(p-1)})
     else: 
         raise Exception('Not a graph type') 
     G = nx.Graph(G)
