@@ -151,7 +151,6 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
         if simulator_config.max_interventions is not None and len(rec_interventions_nonzero) > simulator_config.max_interventions:
             raise ValueError('Returned too many interventions')
 
-        print(recommended_interventions)
         for intv_ix, nsamples in recommended_interventions.items():
             iv_node = intervention_set[intv_ix]
             new_samples = gdag.sample_interventional({iv_node: interventions[intv_ix]}, nsamples)

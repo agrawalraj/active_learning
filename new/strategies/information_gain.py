@@ -36,7 +36,6 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
             else:
                 iv_ix = iteration_data.intervention_set.index(iv_node)
                 intervention = {iv_node: iteration_data.interventions[iv_ix]}
-                print(intervention)
                 log_gauss_dag_weights_unnorm += np.array([gdag.logpdf(data, interventions=intervention).sum(axis=0) for gdag in gauss_dags])
         gauss_dag_weights = np.exp(log_gauss_dag_weights_unnorm - logsumexp(log_gauss_dag_weights_unnorm))
         if not np.isclose(gauss_dag_weights.sum(), 1):
@@ -49,7 +48,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
 
         # === FOR EACH GRAPH, OBTAIN SAMPLES FOR EACH INTERVENTION THAT'LL BE USED TO BUILD UP THE HYPOTHETICAL DATASET
         if gauss_iv:
-            print('COMPUTING CROSS ENTROPIES DATA POINTS')
+            print('COMPUTING CROSS ENTROPIES')
             cross_entropies = xr.DataArray(
                 np.zeros([len(dag_collection), len(iteration_data.intervention_set), len(dag_collection)]),
                 dims=['outer_dag', 'intervention_ix', 'inner_dag'],
