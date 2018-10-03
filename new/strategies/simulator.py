@@ -95,7 +95,7 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     n_nodes = len(gdag.nodes)
     all_samples = {i: np.zeros([0, n_nodes]) for i in range(n_nodes)}
     all_samples[-1] = gdag.sample(simulator_config.starting_samples)
-    precision_matrix = np.linalg.inv(all_samples[-1].T @ all_samples[-1])
+    precision_matrix = np.linalg.inv(all_samples[-1].T @ all_samples[-1] / len(all_samples[-1]))
 
     # === GET GIES SAMPLES GIVEN JUST OBSERVATIONAL DATA
     initial_samples_path = os.path.join(strategy_folder, 'initial_samples.csv')
@@ -126,6 +126,10 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     elif simulator_config.intervention_type == 'gauss':
         interventions = [
             cd.GaussIntervention(mean=0, variance=simulator_config.intervention_strength) for _ in intervention_set
+        ]
+    elif simulator_config.intervention_type == 'constant':
+        interventions = [
+            cd.ConstantIntervention(val=0) for _ in intervention_set
         ]
 
     # === RUN STRATEGY ON EACH BATCH
