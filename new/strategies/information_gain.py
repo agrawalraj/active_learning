@@ -42,6 +42,8 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
         if verbose:
             print('PRIORS:')
             print(gauss_dag_weights)
+            print('DATA:')
+            print({iv_node: data.shape for iv_node, data in iteration_data.current_data.items()})
         if not np.isclose(gauss_dag_weights.sum(), 1):
             raise ValueError('Not correctly normalized')
 
