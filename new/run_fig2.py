@@ -1,7 +1,7 @@
 import os
 import itertools as itr
 
-ns = [25, 50, 100, 200]
+ns = [24, 48, 96, 192]
 ks = [1, None]
 bs = [1, 2, 3]
 
