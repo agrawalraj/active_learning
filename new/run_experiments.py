@@ -6,6 +6,10 @@ from strategies import random_nodes, learn_target_parents, edge_prob, var_score,
 from config import DATA_FOLDER
 import causaldag as cd
 from multiprocessing import Pool, cpu_count
+import random
+
+np.random.seed(1729)
+random.seed(1729)
 
 NUM_STARTING_SAMPLES = 10000
 
@@ -86,6 +90,9 @@ def get_k_entropy_fxn(k):
 def get_strategy(strategy, dag):
     if strategy == 'random':
         return random_nodes.random_strategy
+    if strategy == 'random-smart':
+        d = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
+        return random_nodes.create_random_smart_strategy(d.cpdag())
     if strategy == 'learn-parents':
         return learn_target_parents.create_learn_target_parents(target, args.boot)
     if strategy == 'edge-prob':

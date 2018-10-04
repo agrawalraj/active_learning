@@ -84,9 +84,7 @@ class IterationData:
     precision_matrix: np.ndarray
 
 
-def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_dags_final=100):
-    start = time.time()
-
+def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_dags_final=100, save_gies=True):
     # === SAVE SIMULATION META-INFORMATION
     os.makedirs(strategy_folder, exist_ok=True)
     simulator_config.save(strategy_folder)
@@ -98,14 +96,15 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
     precision_matrix = np.linalg.inv(all_samples[-1].T @ all_samples[-1] / len(all_samples[-1]))
 
     # === GET GIES SAMPLES GIVEN JUST OBSERVATIONAL DATA
-    initial_samples_path = os.path.join(strategy_folder, 'initial_samples.csv')
-    initial_interventions_path = os.path.join(strategy_folder, 'initial_interventions')
-    initial_gies_dags_path = os.path.join(strategy_folder, 'initial_dags/')
-    graph_utils._write_data(all_samples, initial_samples_path, initial_interventions_path)
-    graph_utils.run_gies_boot(num_bootstrap_dags_final, initial_samples_path, initial_interventions_path, initial_gies_dags_path)
-    amats, dags = graph_utils._load_dags(initial_gies_dags_path, delete=True)
-    for d, amat in enumerate(amats):
-        np.save(os.path.join(initial_gies_dags_path, 'dag%d.npy' % d), amat)
+    if save_gies:
+        initial_samples_path = os.path.join(strategy_folder, 'initial_samples.csv')
+        initial_interventions_path = os.path.join(strategy_folder, 'initial_interventions')
+        initial_gies_dags_path = os.path.join(strategy_folder, 'initial_dags/')
+        graph_utils._write_data(all_samples, initial_samples_path, initial_interventions_path)
+        graph_utils.run_gies_boot(num_bootstrap_dags_final, initial_samples_path, initial_interventions_path, initial_gies_dags_path)
+        amats, dags = graph_utils._load_dags(initial_gies_dags_path, delete=True)
+        for d, amat in enumerate(amats):
+            np.save(os.path.join(initial_gies_dags_path, 'dag%d.npy' % d), amat)
 
     # === SPECIFY INTERVENTIONAL DISTRIBUTIONS BASED ON EACH NODE'S STANDARD DEVIATION
     intervention_set = list(range(n_nodes))
@@ -171,14 +170,13 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
         raise ValueError('Did not use all samples')
 
     # === GET GIES SAMPLES GIVEN THE DATA FOR THIS SIMULATION
-    final_samples_path = os.path.join(strategy_folder, 'final_samples.csv')
-    final_interventions_path = os.path.join(strategy_folder, 'final_interventions')
-    final_gies_dags_path = os.path.join(strategy_folder, 'final_dags/')
-    graph_utils._write_data(all_samples, final_samples_path, final_interventions_path)
-    graph_utils.run_gies_boot(num_bootstrap_dags_final, final_samples_path, final_interventions_path, final_gies_dags_path)
-    amats, dags = graph_utils._load_dags(final_gies_dags_path, delete=True)
-    for d, amat in enumerate(amats):
-        np.save(os.path.join(final_gies_dags_path, 'dag%d.npy' % d), amat)
+    if save_gies:
+        final_samples_path = os.path.join(strategy_folder, 'final_samples.csv')
+        final_interventions_path = os.path.join(strategy_folder, 'final_interventions')
+        final_gies_dags_path = os.path.join(strategy_folder, 'final_dags/')
+        graph_utils._write_data(all_samples, final_samples_path, final_interventions_path)
+        graph_utils.run_gies_boot(num_bootstrap_dags_final, final_samples_path, final_interventions_path, final_gies_dags_path)
+        amats, dags = graph_utils._load_dags(final_gies_dags_path, delete=True)
+        for d, amat in enumerate(amats):
+            np.save(os.path.join(final_gies_dags_path, 'dag%d.npy' % d), amat)
 
-    with open(os.path.join(samples_folder, 'time.txt'), 'w') as f:
-        f.write(str(time.time() - start))
