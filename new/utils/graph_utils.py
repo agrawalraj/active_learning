@@ -12,6 +12,7 @@ from scipy import sparse
 import operator as op
 import causaldag as cd
 import random
+from scipy.special import logsumexp
 
 
 def bernoulli(p):
@@ -234,6 +235,18 @@ def cov2dag(cov_mat, dag):
             variances[node] = error_mle_variance
             amat[node_parents, node] = node_mle_coefficents
     return cd.GaussDAG.from_amat(amat, variances=variances)
+
+
+def dag_posterior(dag_collec, data, intervention_nodes, interventions):
+    logpdfs = np.zeros(len(dag_collec))
+    for dag_ix, cand_dag in enumerate(dag_collec):
+        for iv, samples in data.items():
+            if iv == -1:
+                logpdfs[dag_ix] += cand_dag.logpdf(samples).sum()
+            else:
+                iv_ix = intervention_nodes.index(iv)
+                logpdfs[dag_ix] += cand_dag.logpdf(samples, interventions={iv: interventions[iv_ix]}).sum()
+    return np.exp(logpdfs - logsumexp(logpdfs))
 
 
 if __name__ == '__main__':
