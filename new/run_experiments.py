@@ -132,13 +132,14 @@ folders = [
 
 
 def simulate_(tup):
-    gdag, folder = tup
+    gdag, folder, num = tup
     dag = cd.DAG(nodes=set(gdag.nodes), arcs=gdag.arcs)
-    print('SIMULATING FOR DAG:')
+    print('SIMULATING FOR DAG: %d' % num)
+    print('Folder:', folder)
     print('Size of MEC:', len(dag.cpdag().all_dags()))
     simulate(get_strategy(args.strategy, gdag), SIM_CONFIG, gdag, folder)
 
 
 with Pool(cpu_count()-1) as p:
-    p.map(simulate_, zip(dags, folders))
+    p.map(simulate_, zip(dags, folders, range(len(dags))))
 
