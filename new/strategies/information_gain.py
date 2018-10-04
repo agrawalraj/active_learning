@@ -27,7 +27,10 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
         ndatapoints = 1000
 
         cov_mat = np.linalg.inv(iteration_data.precision_matrix)
+        print([len(m.arcs) for m in dag_collection])
         gauss_dags = [graph_utils.cov2dag(cov_mat, dag) for dag in dag_collection]
+        print([len(m.arcs) for m in gauss_dags])
+        print([m1.arcs - m2.arcs for m1, m2 in zip(dag_collection, gauss_dags)])
 
         print('COMPUTING PRIORS')
         log_gauss_dag_weights_unnorm = np.zeros(len(dag_collection))
@@ -473,12 +476,17 @@ if __name__ == '__main__':
 
         return get_k_entropy
 
-    g = cd.GaussDAG(nodes=[0,1,2], arcs={(0,1), (1,2)})
+    np.random.seed(100)
+    g = cd.rand.directed_erdos(10, .5)
+    g = cd.GaussDAG(nodes=list(range(10)), arcs=g.arcs)
+
     mec = [cd.DAG(arcs=arcs) for arcs in cd.DAG(arcs=g.arcs).cpdag().all_dags()]
     strat = create_info_gain_strategy_dag_collection(mec, [get_mec_functional_k(mec)], [get_k_entropy_fxn(len(mec))], verbose=True)
+    samples = g.sample(1000)
+    precision_matrix = samples.T @ samples / 1000
     sel_interventions = strat(
         IterationData(
-            current_data={-1: g.sample(1000), 1: g.sample_interventional({1: cd.GaussIntervention()}, 500)},
+            current_data={-1: g.sample(1000)},
             max_interventions=1,
             n_samples=500,
             batch_num=0,
@@ -486,7 +494,7 @@ if __name__ == '__main__':
             intervention_set=[0, 1, 2],
             interventions=[cd.GaussIntervention() for _ in range(3)],
             batch_folder='test_sanity',
-            precision_matrix=g.precision
+            precision_matrix=precision_matrix
         )
     )
 
