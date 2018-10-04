@@ -93,7 +93,7 @@ def get_k_entropy_fxn(k):
 def descendant_functionals(target, nodes):
     def get_descendant_functional(descendant):
         def descendant_functional(dag):
-            return descendant in dag.downstream[target]
+            return descendant in dag.downstream(target)
         return descendant_functional
 
     return [get_descendant_functional(node) for node in nodes if node != target]
