@@ -1,49 +1,61 @@
 import argparse
 import os
+#import sys
 import numpy as np
-from strategies.simulator import SimulationConfig, simulate
+from strategies.real_data_learning import SimulationConfig, simulate
 from strategies import random_nodes, learn_target_parents, edge_prob, var_score, information_gain
 import causaldag as cd
 
+#print(sys.path)
+
 parser = argparse.ArgumentParser(description='Running strategy on GeneNet Weaver datasets.')
 
-parser.add_argument('--samples', '-n', type=int, help='number of samples')
-parser.add_argument('--batches', '-b', type=int, help='number of batches allowed')
-parser.add_argument('--max_interventions', '-k', type=int, help='maximum number of interventions per batch')
-parser.add_argument('--intervention-strength', '-s', type=float,
+parser.add_argument('--samples', '-n', type=int, default = 1000, help='number of samples')
+parser.add_argument('--batches', '-b', type=int, default = 10, help='number of batches allowed')
+parser.add_argument('--max_interventions', '-k', type=int, default = 2, help='maximum number of interventions per batch')
+parser.add_argument('--intervention-strength', '-s', type=float, default = 1,
                     help='number of standard deviations away from mean interventions occur at')
-parser.add_argument('--boot', type=int, help='number of bootstrap samples')
-parser.add_argument('--intervention-type', '-i', type=str)
+parser.add_argument('--boot', type=int, default = 100, help='number of bootstrap samples')
+parser.add_argument('--intervention-type', '-i', default = "gauss", type=str)
+parser.add_argument('--target', '-t', default = 1, type=int, help='target for functional')
 
-parser.add_argument('--folder', type=str, default="./genenet_results/", help='Folder for storing the results')
-parser.add_argument('--data-file', type=str, default="../../all_data.csv", help='File containing the GeneNet Weaver data')
-parser.add_argument('--strategy', type=str, help='Strategy to use')
+parser.add_argument('--folder', type=str, default="./genenet/", help='Folder for storing the results')
+parser.add_argument('--data-file', type=str, default="./genenet/all_data.csv", help='File containing the GeneNet Weaver data')
+parser.add_argument('--strategy', type=str, default="entropy", help='Strategy to use')
 
 args = parser.parse_args()
 
 
 def get_data(datafile):
-    raw = np.genfromtxt('all_data.csv', delimiter=',')
+    raw = np.genfromtxt(datafile, delimiter=',')
     raw = raw[1:,:] #remove header
-    intervention_labels = raw[:,-1] 
+    intervention_labels = raw[:,-1]
     raw = raw[:,0:-1] #remove last column of intervention labels
-    
+
     n_nodes = raw.shape[1]
 
     # sort data based on intervention, -1 is observational data
     data = {-1: raw[intervention_labels==-1, :]}
-    for i in range(n_nodes)
-        data[i] = raw[intervention_labels==i,:]
-    
+    means = data[-1].mean(axis=0)
+    data[-1] = data[-1]-means
+    for i in range(n_nodes):
+        data[i] = raw[intervention_labels==i,:]-means
     return data, n_nodes
 
+def descendant_functionals(target, n_nodes):
+    def get_descendant_functional(desc):
+        def descendant_functional(dag):
+            return desc in dag.downstream(target)
+        return descendant_functional
+    nodes = list(range(n_nodes))
+    return [get_descendant_functional(node) for node in nodes if node != target]
 
-def parent_functionals(target, nodes):
+def parent_functionals(target, n_nodes):
     def get_parent_functional(parent):
         def parent_functional(dag):
             return parent in dag.parents[target]
         return parent_functional
-
+    nodes = list(range(n_nodes))
     return [get_parent_functional(node) for node in nodes if node != target]
 
 
@@ -88,9 +100,7 @@ def get_strategy(strategy, dag):
         node_vars = np.diag(dag.covariance)
         return var_score.create_variance_strategy(target, node_vars, [2*np.sqrt(node_var) for node_var in node_vars])
     if strategy == 'entropy':
-        mec_functional = get_mec_functional_k(dag_collection)
-        functional_entropies = [get_k_entropy_fxn(len(dag_collection))]
-        return information_gain.create_info_gain_strategy(args.boot, [mec_functional], functional_entropies)
+        return information_gain.create_info_gain_strategy(args.boot, descendant_functionals(args.target, n_nodes))
     if strategy == 'entropy-enum':
         return information_gain.create_info_gain_strategy(args.boot, parent_functionals(target, dag.nodes), enum_combos=True)
     if strategy == 'entropy-dag-collection':
@@ -114,17 +124,19 @@ def get_strategy(strategy, dag):
         return information_gain.create_info_gain_strategy_dag_collection_enum(dag_collection, [mec_functional], functional_entropies)
 
 data, n_nodes = get_data(args.data_file)
-folder = os.path.join(args.folder, args.strategy + ',n=%s,b=%s,k=%s' % (args.samples, args.batches, args.max_interventions)
+print('Number of nodes = %s' %n_nodes)
+folder = os.path.join(args.folder, args.strategy + ',t=%s,n=%s,b=%s,k=%s' % (args.target, args.samples, args.batches, args.max_interventions))
 
 SIM_CONFIG = SimulationConfig(
-    starting_samples=n_nodes
+    starting_samples=len(data[-1]),
     n_samples=args.samples,
     n_batches=args.batches,
     max_interventions=args.max_interventions,
     strategy=args.strategy,
+    target = args.target,
     intervention_strength=args.intervention_strength,
-    target=target,
     intervention_type=args.intervention_type if args.intervention_type is not None else 'gauss'
 )
-
+print('Target = %s' %args.target)
+print('Beginning simulate')
 simulate(get_strategy(args.strategy, None), SIM_CONFIG, n_nodes, folder, data)

@@ -62,7 +62,7 @@ def simulate(strategy, simulator_config, n_nodes, strategy_folder, real_data, nu
     # === SETUP SAMPLE DATASET WITH OBSERVATIONAL DATA
     all_samples = {i: np.zeros([0, n_nodes]) for i in range(n_nodes)}
     all_samples[-1] = real_data[-1]
-    precision_matrix = np.linalg.inv(all_samples[-1].T @ all_samples[-1])
+    precision_matrix = np.linalg.inv(all_samples[-1].T @ all_samples[-1]/len(all_samples[-1]))
 
     # === GET GIES SAMPLES GIVEN JUST OBSERVATIONAL DATA
     initial_samples_path = os.path.join(strategy_folder, 'initial_samples.csv')
