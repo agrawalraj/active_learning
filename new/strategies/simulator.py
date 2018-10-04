@@ -10,8 +10,9 @@ import os
 import causaldag as cd
 from config import DATA_FOLDER
 from typing import Dict, Any
-import time
 import itertools as itr
+
+MAX_MEC_SIZE = 100
 
 
 def get_component_dag(nnodes, p, nclusters=3):
@@ -41,6 +42,14 @@ class GenerationConfig:
             dags = cd.rand.directed_erdos(self.n_nodes, self.edge_prob, size=self.n_dags)
             if self.n_dags == 1:
                 dags = [dags]
+        elif self.graph_type == 'erdos-bounded':
+            dags = []
+            while len(dags) < self.n_dags:
+                dag = cd.rand.directed_erdos(self.n_nodes, self.edge_prob)
+                cpdag = dag.cpdag()
+                mec_size = len(cpdag.all_dags())
+                if mec_size > MAX_MEC_SIZE:
+                    dags.append(dag)
         elif self.graph_type == 'components':
             dags = [get_component_dag(self.n_nodes, self.edge_prob) for _ in range(self.n_dags)]
         else:
