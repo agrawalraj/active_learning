@@ -27,12 +27,10 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
         ndatapoints = 1000
 
         cov_mat = np.linalg.inv(iteration_data.precision_matrix)
-        print([len(m.arcs) for m in dag_collection])
         gauss_dags = [graph_utils.cov2dag(cov_mat, dag) for dag in dag_collection]
-        print([len(m.arcs) for m in gauss_dags])
-        print([m1.arcs - m2.arcs for m1, m2 in zip(dag_collection, gauss_dags)])
 
-        print('COMPUTING PRIORS')
+        if verbose:
+            print('COMPUTING PRIORS')
         log_gauss_dag_weights_unnorm = np.zeros(len(dag_collection))
         prior_logpdfs = np.array([gdag.logpdf(iteration_data.current_data[-1]).sum(axis=0) for gdag in gauss_dags])
         log_gauss_dag_weights_unnorm += prior_logpdfs
@@ -60,7 +58,8 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
 
         # === FOR EACH GRAPH, OBTAIN SAMPLES FOR EACH INTERVENTION THAT'LL BE USED TO BUILD UP THE HYPOTHETICAL DATASET
         if gauss_iv:
-            print('COMPUTING CROSS ENTROPIES')
+            if verbose:
+                print('COMPUTING CROSS ENTROPIES')
             cross_entropies = xr.DataArray(
                 np.zeros([len(dag_collection), len(iteration_data.intervention_set), len(dag_collection)]),
                 dims=['outer_dag', 'intervention_ix', 'inner_dag'],
@@ -79,7 +78,8 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                         cross_entropy = graph_utils.cross_entropy_interventional(gdag1, gdag2, iteration_data.intervention_set[intv_ix], intervention.variance)
                         cross_entropies.loc[loc] = cross_entropy
         else:
-            print('COLLECTING DATA POINTS')
+            if verbose:
+                print('COLLECTING DATA POINTS')
             datapoints = [
                 [
                     dag.sample_interventional({intervened_node: intervention}, nsamples=ndatapoints)
@@ -89,7 +89,8 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                 for dag in gauss_dags
             ]
 
-            print('CALCULATING LOG PDFS')
+            if verbose:
+                print('CALCULATING LOG PDFS')
             datapoint_ixs = list(range(ndatapoints))
             logpdfs = xr.DataArray(
                 np.zeros([len(dag_collection), len(iteration_data.intervention_set), len(dag_collection), ndatapoints]),
@@ -125,7 +126,8 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
             for m_num in range(num_minibatches)
         ]
 
-        print('ALLOCATING SAMPLES')
+        if verbose:
+            print('ALLOCATING SAMPLES')
         for minibatch_num, mbsize in tqdm(zip(range(num_minibatches), mbsizes), total=num_minibatches):
             intervention_scores = np.zeros(len(iteration_data.interventions))
             intervention_logpdfs = np.zeros([len(iteration_data.interventions), len(dag_collection), len(dag_collection)])
@@ -141,20 +143,12 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
                         outer_dag=outer_dag_ix,
                         intervention_ix=intv_ix,
                     )*mbsize*multiplier
-                    # print(outer_dag_ix, intv_ix)
-                    # print(intervention_logpdfs[intv_ix, outer_dag_ix])
                     new_logpdfs = current_logpdfs[outer_dag_ix] + intervention_logpdfs[intv_ix, outer_dag_ix]
-                    # print('done')
 
                     importance_weights = np.exp(new_logpdfs - logsumexp(new_logpdfs))
-                    # functional_probabilities = (importance_weights[:, np.newaxis] * functional_matrix).sum(axis=0)
 
                     functional_entropies = [f(functional_matrix[:, f_ix], importance_weights) for f_ix, f in enumerate(functional_entropy_fxns)]
-                    # functional_entropies = binary_entropy(functional_probabilities)
                     intervention_scores[intv_ix] += gauss_dag_weights[outer_dag_ix] * np.sum(functional_entropies)
-            # if verbose:
-            #     print('INTERVENTION SCORES, MINIBATCH %s' % minibatch_num)
-            #     print(list(zip(intv_ixs_to_consider, intervention_scores[intv_ixs_to_consider])))
 
             best_intervention_score = intervention_scores[intv_ixs_to_consider].min()
             best_scoring_interventions = np.nonzero(intervention_scores == best_intervention_score)[0]
