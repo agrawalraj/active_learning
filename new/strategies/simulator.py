@@ -75,6 +75,7 @@ class SimulationConfig:
     starting_samples: int
     target: int
     intervention_type: str
+    target_allowed: bool = True
 
     def save(self, folder):
         yaml.dump(asdict(self), open(os.path.join(folder, 'sim-config.yaml'), 'w'), indent=2, default_flow_style=False)
@@ -139,6 +140,13 @@ def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_da
         interventions = [
             cd.ConstantIntervention(val=0) for _ in intervention_set
         ]
+    else:
+        raise ValueError
+
+    if not simulator_config.target_allowed:
+        del intervention_set[simulator_config.target]
+        del interventions[simulator_config.target]
+    print(intervention_set)
 
     # === RUN STRATEGY ON EACH BATCH
     for batch in range(simulator_config.n_batches):

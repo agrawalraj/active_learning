@@ -27,6 +27,8 @@ parser.add_argument('--verbose', '-v', type=bool, help='Minibatch size')
 
 parser.add_argument('--folder', type=str, help='Folder containing the DAGs')
 parser.add_argument('--strategy', type=str, help='Strategy to use')
+parser.add_argument('--target-allowed', type=int, help='Whether or not the specified target node can be intervened on')
+
 
 args = parser.parse_args()
 
@@ -44,7 +46,8 @@ SIM_CONFIG = SimulationConfig(
     strategy=args.strategy,
     intervention_strength=args.intervention_strength,
     target=target,
-    intervention_type=args.intervention_type if args.intervention_type is not None else 'gauss'
+    intervention_type=args.intervention_type if args.intervention_type is not None else 'gauss',
+    target_allowed=args.target_allowed != 0 if args.target_allowed is not None else True
 )
 
 
@@ -87,6 +90,15 @@ def get_k_entropy_fxn(k):
     return get_k_entropy
 
 
+def descendant_functionals(target, nodes):
+    def get_descendant_functional(descendant):
+        def descendant_functional(dag):
+            return descendant in dag.downstream[target]
+        return descendant_functional
+
+    return [get_descendant_functional(node) for node in nodes if node != target]
+
+
 def get_strategy(strategy, dag):
     if strategy == 'random':
         return random_nodes.random_strategy
@@ -114,6 +126,15 @@ def get_strategy(strategy, dag):
 
         gauss_iv = args.intervention_type == 'gauss'
         return information_gain.create_info_gain_strategy_dag_collection(dag_collection, [mec_functional], functional_entropies, gauss_iv, args.mbsize, verbose=args.verbose)
+    if strategy == 'entropy-dag-collection-descendants':
+        base_dag = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
+        dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]
+        binary_entropy_fxn = get_k_entropy_fxn(2)
+        d_functionals = descendant_functionals(target, dag.nodes)
+        d_functionals_entropies = [binary_entropy_fxn] * len(d_functionals)
+        gauss_iv = args.intervention_type == 'gauss'
+        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, d_functionals, d_functionals_entropies, gauss_iv, args.mbsize, verbose=args.verbose)
+
     if strategy == 'entropy-dag-collection-enum':
         base_dag = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
         dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]
