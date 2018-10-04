@@ -48,7 +48,7 @@ class GenerationConfig:
                 dag = cd.rand.directed_erdos(self.n_nodes, self.edge_prob)
                 cpdag = dag.cpdag()
                 mec_size = len(cpdag.all_dags())
-                if mec_size > MAX_MEC_SIZE:
+                if mec_size < MAX_MEC_SIZE:
                     dags.append(dag)
         elif self.graph_type == 'components':
             dags = [get_component_dag(self.n_nodes, self.edge_prob) for _ in range(self.n_dags)]
