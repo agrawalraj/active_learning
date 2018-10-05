@@ -23,7 +23,8 @@ parser.add_argument('--intervention-strength', '-s', type=float,
 parser.add_argument('--boot', type=int, help='number of bootstrap samples')
 parser.add_argument('--intervention-type', '-i', type=str)
 parser.add_argument('--mbsize', '-m', type=int, help='Minibatch size')
-parser.add_argument('--verbose', '-v', type=bool, help='Minibatch size')
+parser.add_argument('--verbose', '-v', type=bool)
+parser.add_argument('--target', type=int)
 
 parser.add_argument('--folder', type=str, help='Folder containing the DAGs')
 parser.add_argument('--strategy', type=str, help='Strategy to use')
@@ -36,7 +37,7 @@ ndags = len(os.listdir(os.path.join(DATA_FOLDER, args.folder, 'dags')))
 amats = [np.loadtxt(os.path.join(DATA_FOLDER, args.folder, 'dags', 'dag%d' % i, 'adjacency.txt')) for i in range(ndags)]
 dags = [cd.GaussDAG.from_amat(amat) for amat in amats]
 nnodes = len(dags[0].nodes)
-target = int(np.ceil(nnodes/2) - 1)
+target = args.target if args.target is not None else int(np.ceil(nnodes/2) - 1)
 
 SIM_CONFIG = SimulationConfig(
     starting_samples=NUM_STARTING_SAMPLES,

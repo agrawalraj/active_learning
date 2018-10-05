@@ -52,6 +52,14 @@ class GenerationConfig:
                     dags.append(dag)
         elif self.graph_type == 'components':
             dags = [get_component_dag(self.n_nodes, self.edge_prob) for _ in range(self.n_dags)]
+        elif self.graph_type == 'unoriented_by_one':
+            dags = []
+            while len(dags) < self.n_dags:
+                dag = cd.rand.directed_erdos(self.n_nodes, self.edge_prob)
+                cpdag = dag.cpdag()
+                if len(cpdag.undirected_neighbors[0]) >= 2:
+                    print(cpdag.undirected_neighbors[0])
+                    dags.append(dag)
         else:
             dags = [graph_utils.generate_DAG(self.n_nodes, type_=self.graph_type) for _ in range(self.n_dags)]
         dag_arcs = [{(i, j): 1 for i, j in dag.arcs} for dag in dags]
