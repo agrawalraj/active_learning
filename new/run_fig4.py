@@ -12,9 +12,9 @@ ndags = 25
 os.system(f'python3 make_dataset.py -p {p} -s {.25} -d {ndags} -t erdos-bounded --folder erdos_renyi_gies')
 for n, b, k in itr.product(ns, bs, ks):
     if k is None:
-        os.system(f'python3 run_experiments.py -n {n} -b {b} -m 2 -s .1 -i gauss --target-allowed 0 --folder erdos_renyi_gies --strategy entropy')
+        os.system(f'python3 run_experiments.py --boot 100 -n {n} -b {b} -m 2 -s .1 -i gauss --target-allowed 0 --folder erdos_renyi_gies --strategy entropy')
     else:
-        os.system(f'python3 run_experiments.py -n {n} -b {b} -k {k} -m 2 -s .1 -i gauss --target-allowed 0 --folder erdos_renyi_gies --strategy entropy')
+        os.system(f'python3 run_experiments.py --boot 100 -n {n} -b {b} -k {k} -m 2 -s .1 -i gauss --target-allowed 0 --folder erdos_renyi_gies --strategy entropy')
 for n, b, k in itr.product(ns, bs, ks):
     if k is None:
         os.system(f'python3 run_experiments.py -n {n} -b {b} -m 2 -s .1 -i gauss --target-allowed 0 --folder erdos_renyi_gies --strategy entropy-dag-collection')
