@@ -57,7 +57,7 @@ class GenerationConfig:
             while len(dags) < self.n_dags:
                 dag = cd.rand.directed_erdos(self.n_nodes, self.edge_prob)
                 cpdag = dag.cpdag()
-                if len(cpdag.undirected_neighbors[0]) >= 2:
+                if len(cpdag.undirected_neighbors[0]) >= 2 and len(cpdag.all_dags()) < 100:
                     print(cpdag.undirected_neighbors[0])
                     dags.append(dag)
         else:
