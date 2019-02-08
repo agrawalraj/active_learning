@@ -2,7 +2,7 @@ import argparse
 import os
 import numpy as np
 from strategies.simulator import SimulationConfig, simulate
-from strategies import random_nodes, learn_target_parents, edge_prob, var_score, information_gain
+from strategies import random_nodes, learn_target_parents, edge_prob, var_score, information_gain, budgeted_experiment_design
 from config import DATA_FOLDER
 import causaldag as cd
 from multiprocessing import Pool, cpu_count
@@ -101,6 +101,10 @@ def descendant_functionals(target, nodes):
 
 
 def get_strategy(strategy, dag):
+    if strategy == 'budgeted_exp_design':
+        base_dag = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
+        dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]
+        return budgeted_experiment_design.create_bed_strategy(dag_collection)
     if strategy == 'random':
         return random_nodes.random_strategy
     if strategy == 'random-smart':
@@ -159,7 +163,7 @@ def simulate_(tup):
     print('SIMULATING FOR DAG: %d' % num)
     print('Folder:', folder)
     print('Size of MEC:', len(dag.cpdag().all_dags()))
-    simulate(get_strategy(args.strategy, gdag), SIM_CONFIG, gdag, folder)
+    simulate(get_strategy(args.strategy, gdag), SIM_CONFIG, gdag, folder, save_gies=False)
 
 
 with Pool(cpu_count()-1) as p:
