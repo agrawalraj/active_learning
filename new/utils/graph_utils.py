@@ -7,7 +7,7 @@ import config
 import pandas as pd
 import networkx as nx
 from networkx.utils import powerlaw_sequence
-from sksparse.cholmod import cholesky  # this has to be used instead of scipy's because it doesn't permute the matrix
+# from sksparse.cholmod import cholesky  # this has to be used instead of scipy's because it doesn't permute the matrix
 from scipy import sparse
 import operator as op
 import causaldag as cd
@@ -157,34 +157,34 @@ def entropy_shrinkage(prob):
     return (prob * np.log(prob) + (1 - prob) * np.log(1 - prob)) / np.log(2)  
 
 
-def prec2dag(prec, node_order):
-    p = prec.shape[0]
-
-    # === permute precision matrix into correct order for LDL
-    prec = prec.copy()
-    rev_node_order = list(reversed(node_order))
-    prec = prec[rev_node_order]
-    prec = prec[:, rev_node_order]
-
-    # === perform ldl decomposition and correct for floating point errors
-    factor = cholesky(sparse.csc_matrix(prec))
-    l, d = factor.L_D()
-    l = l.todense()
-    d = d.todense()
-
-    # === permute back
-    inv_rev_node_order = [i for i, j in sorted(enumerate(rev_node_order), key=op.itemgetter(1))]
-    l = l.copy()
-    l = l[inv_rev_node_order]
-    l = l[:, inv_rev_node_order]
-    d = d.copy()
-    d = d[inv_rev_node_order]
-    d = d[:, inv_rev_node_order]
-
-    amat = np.eye(p) - l
-    variances = np.diag(d) ** -1
-
-    return cd.GaussDAG.from_amat(amat, variances=variances)
+# def prec2dag(prec, node_order):
+#     p = prec.shape[0]
+#
+#     # === permute precision matrix into correct order for LDL
+#     prec = prec.copy()
+#     rev_node_order = list(reversed(node_order))
+#     prec = prec[rev_node_order]
+#     prec = prec[:, rev_node_order]
+#
+#     # === perform ldl decomposition and correct for floating point errors
+#     factor = cholesky(sparse.csc_matrix(prec))
+#     l, d = factor.L_D()
+#     l = l.todense()
+#     d = d.todense()
+#
+#     # === permute back
+#     inv_rev_node_order = [i for i, j in sorted(enumerate(rev_node_order), key=op.itemgetter(1))]
+#     l = l.copy()
+#     l = l[inv_rev_node_order]
+#     l = l[:, inv_rev_node_order]
+#     d = d.copy()
+#     d = d[inv_rev_node_order]
+#     d = d[:, inv_rev_node_order]
+#
+#     amat = np.eye(p) - l
+#     variances = np.diag(d) ** -1
+#
+#     return cd.GaussDAG.from_amat(amat, variances=variances)
 
 
 # def cov2dag(cov_mat, dag):
