@@ -51,6 +51,7 @@ def _non_isolated_nodes(cpdag):
 def create_random_smart_strategy(cpdag):
     def random_smart_strategy(iteration_data):
         non_isolated_nodes = _non_isolated_nodes(cpdag)
+        if len(non_isolated_nodes) == 0: non_isolated_nodes = cpdag.nodes
         modified_iv_ixs = [ix for ix, node in enumerate(iteration_data.intervention_set) if node in non_isolated_nodes]
         modified_intervention_set = [iteration_data.intervention_set[ix] for ix in modified_iv_ixs]
         modified_interventions = [iteration_data.interventions[ix] for ix in modified_iv_ixs]

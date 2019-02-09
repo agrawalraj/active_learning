@@ -8,7 +8,7 @@ bs = [1, 2, 3]
 p = 25
 s = .25
 ndags = 50
-strategies = {'bed', 'entropy', 'random', 'random-smart'}
+strategies = {'random-smart'}
 
 os.system(f'python3 make_dataset.py -p {p} -s {.25} -d {ndags} -t erdos-bounded --folder erdos_renyi_final')
 for n, b, k, strat in itr.product(ns, bs, ks, strategies):
