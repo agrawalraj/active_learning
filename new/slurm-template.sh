@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #SBATCH --ntasks 1
-#SBATCH --cpus-per-task 32
+#SBATCH --cpus-per-task 20
 #SBATCH --time 06:00:00
 #SBATCH -p newnodes
 #SBATCH -J experiment_design
