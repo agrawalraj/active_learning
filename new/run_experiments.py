@@ -131,6 +131,31 @@ def get_strategy(strategy, dag):
 
         gauss_iv = args.intervention_type == 'gauss'
         return information_gain.create_info_gain_strategy_dag_collection(dag_collection, [mec_functional], functional_entropies, gauss_iv, args.mbsize, verbose=args.verbose)
+    if strategy == 'entropy-dag-collection-multiple-mec':
+        base_dag = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
+        other_dags = []
+        non_reversible_arcs = list(base_dag.arcs - base_dag.reversible_arcs())
+        random.shuffle(non_reversible_arcs)
+        while len(other_dags) < 3:
+            if len(non_reversible_arcs) == 0:
+                break
+            arc = non_reversible_arcs.pop()
+            other_dag = base_dag.copy()
+            other_dag.reverse_arc(*arc)
+            if not any(other_dag.markov_equivalent(d) for d in other_dags):
+                other_dags.append(other_dag)
+        print(other_dags)
+
+        dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]
+        for other_dag in other_dags:
+            dag_collection.extend([cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in other_dag.cpdag().all_dags()])
+        print('length of dag collection:', len(dag_collection))
+        mec_functional = get_mec_functional_k(dag_collection)
+        functional_entropies = [get_k_entropy_fxn(len(dag_collection))]
+
+        gauss_iv = args.intervention_type == 'gauss'
+        return information_gain.create_info_gain_strategy_dag_collection(dag_collection, [mec_functional], functional_entropies, gauss_iv, args.mbsize, verbose=args.verbose)
+
     if strategy == 'entropy-dag-collection-descendants':
         base_dag = cd.DAG(nodes=set(dag.nodes), arcs=dag.arcs)
         dag_collection = [cd.DAG(nodes=set(dag.nodes), arcs=arcs) for arcs in base_dag.cpdag().all_dags()]
