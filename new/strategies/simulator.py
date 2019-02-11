@@ -12,7 +12,7 @@ from config import DATA_FOLDER
 from typing import Dict, Any
 import itertools as itr
 
-MAX_MEC_SIZE = 100
+MAX_MEC_SIZE = 25
 
 
 def get_component_dag(nnodes, p, nclusters=3):
@@ -57,7 +57,7 @@ class GenerationConfig:
             while len(dags) < self.n_dags:
                 dag = cd.rand.directed_erdos(self.n_nodes, self.edge_prob)
                 cpdag = dag.cpdag()
-                if len(cpdag.undirected_neighbors[0]) >= 2 and len(cpdag.all_dags()) < 100:
+                if len(cpdag.all_dags()) < MAX_MEC_SIZE:
                     print(cpdag.undirected_neighbors[0])
                     dags.append(dag)
         else:

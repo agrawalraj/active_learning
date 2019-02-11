@@ -146,7 +146,7 @@ def get_strategy(strategy, dag):
                 other_dag.reverse_arc(*arc)
             except CycleError:
                 pass
-            if not any(other_dag.markov_equivalent(d) for d in other_dags):
+            if not any(other_dag.markov_equivalent(d) for d in other_dags) and len(other_dag.cpdag().all_dags()) < 25:
                 other_dags.append(other_dag)
         print(other_dags)
 
