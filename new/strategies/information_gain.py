@@ -116,7 +116,7 @@ def create_info_gain_strategy_dag_collection(dag_collection, graph_functionals, 
 
         current_logpdfs = np.zeros([len(dag_collection), len(dag_collection)])
         for inner_dag_ix, logpdf in enumerate(log_gauss_dag_weights_unnorm):
-            current_logpdfs[:,inner_dag_ix] = logpdf
+            current_logpdfs[:, inner_dag_ix] = logpdf
 
         selected_interventions = defaultdict(int)
 

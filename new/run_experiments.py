@@ -5,6 +5,7 @@ from strategies.simulator import SimulationConfig, simulate
 from strategies import random_nodes, learn_target_parents, edge_prob, var_score, information_gain, budgeted_experiment_design
 from config import DATA_FOLDER
 import causaldag as cd
+from causaldag.classes.dag import CycleError
 from multiprocessing import Pool, cpu_count
 import random
 
@@ -141,7 +142,10 @@ def get_strategy(strategy, dag):
                 break
             arc = non_reversible_arcs.pop()
             other_dag = base_dag.copy()
-            other_dag.reverse_arc(*arc)
+            try:
+                other_dag.reverse_arc(*arc)
+            except CycleError:
+                pass
             if not any(other_dag.markov_equivalent(d) for d in other_dags):
                 other_dags.append(other_dag)
         print(other_dags)
