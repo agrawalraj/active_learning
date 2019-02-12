@@ -10,7 +10,7 @@ s = .25
 ndags = 50
 strategies = {'random', 'entropy-multiple-mec'}
 
-os.system(f'python3 make_dataset.py -p {p} -s {.25} -d {ndags} -t erdos-bounded --folder erdos_renyi_multiple_mec')
+# os.system(f'python3 make_dataset.py -p {p} -s {.25} -d {ndags} -t erdos-bounded --folder erdos_renyi_multiple_mec')
 for n, b, k, strat in itr.product(ns, bs, ks, strategies):
     if 'entropy-multiple-mec' == strat:
         if k is None:
