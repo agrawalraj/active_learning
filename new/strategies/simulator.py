@@ -103,6 +103,9 @@ class IterationData:
 
 
 def simulate(strategy, simulator_config, gdag, strategy_folder, num_bootstrap_dags_final=100, save_gies=True):
+    if os.path.exists(os.path.join(strategy_folder, 'samples')):
+        return
+
     # === SAVE SIMULATION META-INFORMATION
     os.makedirs(strategy_folder, exist_ok=True)
     simulator_config.save(strategy_folder)
