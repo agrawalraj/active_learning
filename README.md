@@ -13,7 +13,7 @@ From ipython3, try:
 
 ## To run on the server:
 ```
-git clone https://github.com/rajisme/active_learning.git
+git clone https://github.com/agrawalraj/active_learning.git
 cd active_learning/new
 bash setup-server.sh
 sudo apt-get install libsuitesparse-dev
